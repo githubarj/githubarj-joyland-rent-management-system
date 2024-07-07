@@ -2,10 +2,10 @@ import React from 'react';
 import '@mantine/core/styles.css';
 import { AppShell, MantineProvider } from '@mantine/core';
 import theme from '../theme';
-import { useDisclosure } from '@mantine/hooks';
-import AppHeader from './Components/AppHeader';
-import Navbar from './Components/Navbar';
-import AppFooter from './Components/AppFooter';
+import { useColorScheme, useDisclosure } from '@mantine/hooks';
+import AppHeader from './Components/Header/AppHeader';
+import Navbar from './Components/Navbar/Navbar';
+import AppFooter from './Components/Footer/AppFooter';
 import layout from './styles/layout.module.scss';
 import { Outlet } from 'react-router-dom';
 
@@ -13,9 +13,9 @@ const AppLayout: React.FC = () => {
   const [open, { toggle }] = useDisclosure();
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme='light'>
+    <MantineProvider theme={theme} defaultColorScheme={'auto'}>
       <AppShell
-        header={{ height: 45 }}
+        header={{ height: 55 }}
         footer={{ height: 45 }}
         layout='alt'
         withBorder={false}
@@ -27,7 +27,7 @@ const AppLayout: React.FC = () => {
       >
         <AppHeader open={open} toggle={toggle} />
         <Navbar open={open} toggle={toggle} />
-        <AppShell.Main className={layout.main}>
+        <AppShell.Main px={'sm'} className={layout.main}>
           <Outlet />
         </AppShell.Main>
         <AppFooter />

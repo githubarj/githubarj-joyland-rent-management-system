@@ -1,9 +1,9 @@
 %body-background {
-    background: light-dark($body-background-light, $body-background-dark);
+    background: light($body-background-light);
 }
 
 .header {
-    @extend %body-background;
+    // @extend %body-background;
     .icon {
         transition: transform 0.3s ease-in-out;
         &[data-open="true"] {
@@ -22,4 +22,9 @@
 
 .footer {
     @extend %body-background;
+}
+
+.centerIcons {
+    display: flex;
+    align-items: center;
 }

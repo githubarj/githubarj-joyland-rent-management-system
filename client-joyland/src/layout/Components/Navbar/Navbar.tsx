@@ -1,6 +1,6 @@
-import { AppShell, Burger } from '@mantine/core';
+import { AppShell } from '@mantine/core';
 import React from 'react';
-import layout from '../styles/layout.module.scss';
+import layout from '../../styles/layout.module.scss';
 
 interface navProps {
   open: boolean;
