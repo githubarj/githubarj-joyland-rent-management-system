@@ -1,0 +1,25 @@
+%body-background {
+    background: light-dark($body-background-light, $body-background-dark);
+}
+
+.header {
+    @extend %body-background;
+    .icon {
+        transition: transform 0.3s ease-in-out;
+        &[data-open="true"] {
+            transform: scaleX(-1);
+        }
+    }
+}
+
+.navbar {
+    @extend %body-background;
+}
+
+.main {
+    @extend %body-background;
+}
+
+.footer {
+    @extend %body-background;
+}
