@@ -1,15 +1,11 @@
 %body-background {
-    background: light($body-background-light);
+    @include light {
+        background: $body-background-light;
+    }
 }
 
 .header {
-    // @extend %body-background;
-    .icon {
-        transition: transform 0.3s ease-in-out;
-        &[data-open="true"] {
-            transform: scaleX(-1);
-        }
-    }
+    @extend %body-background;
 }
 
 .navbar {
@@ -27,4 +23,11 @@
 .centerIcons {
     display: flex;
     align-items: center;
+}
+.icon {
+    transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+    &[data-open="true"] {
+        transform: scaleX(-1);
+    }
 }

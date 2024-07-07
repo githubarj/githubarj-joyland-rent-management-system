@@ -2,7 +2,7 @@ import React from 'react';
 import '@mantine/core/styles.css';
 import { AppShell, MantineProvider } from '@mantine/core';
 import theme from '../theme';
-import { useColorScheme, useDisclosure } from '@mantine/hooks';
+import { useDisclosure } from '@mantine/hooks';
 import AppHeader from './Components/Header/AppHeader';
 import Navbar from './Components/Navbar/Navbar';
 import AppFooter from './Components/Footer/AppFooter';
@@ -20,9 +20,9 @@ const AppLayout: React.FC = () => {
         layout='alt'
         withBorder={false}
         navbar={{
-          width: 230,
+          width: 200,
           breakpoint: 'xs',
-          collapsed: { mobile: !open, desktop: !open },
+          collapsed: { mobile: !open, desktop: open },
         }}
       >
         <AppHeader open={open} toggle={toggle} />
