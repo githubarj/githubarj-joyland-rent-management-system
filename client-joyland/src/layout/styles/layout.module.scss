@@ -2,6 +2,9 @@
     @include light {
         background: $body-background-light;
     }
+    // @include dark {
+    //     background: $body-background-dark;
+    // }
 }
 
 .header {
@@ -13,7 +16,7 @@
 }
 
 .main {
-    // @extend %body-background;
+    @extend %body-background;
 }
 
 .footer {

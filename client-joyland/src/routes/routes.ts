@@ -6,6 +6,7 @@ import Admin from '../views/admin';
 import Accounting from '../views/Accounting/Index';
 import Notifications from '../views/notifications/Index';
 import Settings from '../views/settings/Index';
+import ErrorPage from '../views/errors/Index';
 
 export const routes: RouteObject[] = [
   {
@@ -35,6 +36,10 @@ export const routes: RouteObject[] = [
       {
         path: 'settings',
         element: React.createElement(Settings),
+      },
+      {
+        path: '*',
+        element: React.createElement(ErrorPage),
       },
     ],
   },
