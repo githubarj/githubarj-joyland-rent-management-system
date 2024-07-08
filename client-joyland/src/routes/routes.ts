@@ -30,12 +30,12 @@ export const routes: RouteObject[] = [
       },
       {
         path: 'notifications',
-        element: React.createElement(Notifications)
-      },{
+        element: React.createElement(Notifications),
+      },
+      {
         path: 'settings',
-        element: React.createElement(Settings)
-      }
-
+        element: React.createElement(Settings),
+      },
     ],
   },
 ];
