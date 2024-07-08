@@ -1,4 +1,11 @@
-import { AppShell, Center, Flex, Image, Title } from '@mantine/core';
+import {
+  AppShell,
+  Center,
+  Flex,
+  Image,
+  ScrollArea,
+  Title,
+} from '@mantine/core';
 import React from 'react';
 import layout from '../../styles/layout.module.scss';
 import freelance from '../../assets/freeLance.png';
@@ -27,8 +34,9 @@ const Navbar: React.FC<navProps> = ({ toggle, open }) => {
           </Center>
         </Flex>
       </AppShell.Section>
-      <AppShell.Section>
-        <Navlinks />
+      <Navlinks />
+      <AppShell.Section h={45}>
+
       </AppShell.Section>
     </AppShell.Navbar>
   );

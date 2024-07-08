@@ -5,6 +5,7 @@ import { TbLayoutSidebarLeftExpandFilled } from 'react-icons/tb';
 import ThemeSwitch from './ThemeSwitch';
 import Notifications from './Notifications';
 import UserMenu from './UserMenu';
+import Fullscreen from './Fullscreen';
 
 interface headerProps {
   open: boolean;
@@ -22,6 +23,7 @@ const AppHeader: React.FC<headerProps> = ({ open, toggle }) => {
           onClick={toggle}
         />
         <Group>
+          <Fullscreen />
           <ThemeSwitch />
           <Notifications />
           <UserMenu />
