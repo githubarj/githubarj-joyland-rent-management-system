@@ -1,13 +1,16 @@
 import { ReactNode } from 'react';
 import { IconType } from 'react-icons/lib';
+import { MdOutlineNotificationsNone } from 'react-icons/md';
 import {
-  MdOutlineAccountBalanceWallet,
-  MdOutlineAdminPanelSettings,
-  MdOutlineNotificationsNone,
-  MdOutlineSpaceDashboard,
-} from 'react-icons/md';
-import { FcBusinessman, FcCalendar, FcMoneyTransfer } from 'react-icons/fc';
-import { RiListSettingsLine } from 'react-icons/ri';
+  FcAnswers,
+  FcBarChart,
+  FcBusinessman,
+  FcCalendar,
+  FcDataProtection,
+  FcMoneyTransfer,
+  FcSalesPerformance,
+  FcServices,
+} from 'react-icons/fc';
 export interface navLinksProps {
   label: ReactNode;
   description?: ReactNode;
@@ -24,7 +27,7 @@ export interface navLinksProps {
 const links: navLinksProps[] = [
   {
     label: 'Dashboard',
-    icon: MdOutlineSpaceDashboard,
+    icon: FcBarChart,
     to: 'dashboard',
   },
   {
@@ -44,44 +47,48 @@ const links: navLinksProps[] = [
     ],
   },
   {
-    label: 'Billing',
+    label: 'Invoicing',
     icon: FcMoneyTransfer,
-    to: 'billing',
+    to: 'invoicing',
     children: [
       {
-        label: 'Water Bills',
-        to: 'billing/water-bills',
+        label: 'View invoices',
+        to: 'invoicing/invoice-list',
       },
       {
-        label: 'Monthly rent',
-        to: 'billing/monthly-rent',
+        label: 'Create Invoice',
+        to: 'invoicing/create-invoice',
       },
       {
         label: 'Repairs',
-        to: 'billing/repairs',
+        to: 'invoicing/repairs',
       },
       {
         label: 'Expenses',
-        to: 'billing/expenses',
+        to: 'invoicing/expenses',
       },
       {
-        label: 'Cancelled Bills',
-        to: 'billing/cancelled-bills',
+        label: 'Cancelled Invoices',
+        to: 'invoicing/cancelled-invoices',
       },
     ],
   },
   {
     label: 'Accounting',
-    icon: MdOutlineAccountBalanceWallet,
+    icon: FcSalesPerformance,
     to: 'accounting',
     children: [
       {
-        label: 'Invoices',
-        to: 'accounting/invoices',
+        label: 'Payments',
+        to: 'accounting/payment-history',
       },
       {
-        label: 'Receipts',
-        to: 'accounting/receipts',
+        label: 'Record Payment',
+        to: 'accounting/record-payment',
+      },
+      {
+        label: 'Transaction Records',
+        to: 'accounting/transaction-records',
       },
       {
         label: 'Cancelled Payments',
@@ -89,7 +96,25 @@ const links: navLinksProps[] = [
       },
     ],
   },
-
+  {
+    label: 'Reports',
+    to: 'reports',
+    icon: FcAnswers,
+    children: [
+      {
+        label: 'Invoice Summary',
+        to: 'reports/invoice-summary',
+      },
+      {
+        label: 'Outstanding Payments',
+        to: 'reports/oustanding-payments',
+      },
+      {
+        label: 'Revenue Reports',
+        to: 'reports/revenue-reports',
+      },
+    ],
+  },
   {
     label: 'Calender',
     icon: FcCalendar,
@@ -98,12 +123,12 @@ const links: navLinksProps[] = [
 
   {
     label: 'Admin',
-    icon: MdOutlineAdminPanelSettings,
+    icon: FcDataProtection,
     to: 'admin',
   },
   {
     label: 'Settings',
-    icon: RiListSettingsLine,
+    icon: FcServices,
     to: 'settings',
   },
 ];

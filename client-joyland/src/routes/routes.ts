@@ -7,6 +7,7 @@ import Accounting from '../views/Accounting/Index';
 import Notifications from '../views/notifications/Index';
 import Settings from '../views/settings/Index';
 import ErrorPage from '../views/errors/Index';
+import { invoiceRoutes } from '../views/Invoicing/Index';
 
 export const routes: RouteObject[] = [
   {
@@ -17,6 +18,7 @@ export const routes: RouteObject[] = [
         index: true,
         loader: () => redirect('dashboard'),
       },
+      invoiceRoutes,
       {
         path: 'dashboard',
         element: React.createElement(Dashboard),

@@ -1,4 +1,4 @@
-import { Button, Center, Container, Stack, Tooltip } from '@mantine/core';
+import { Button, Stack, Tooltip } from '@mantine/core';
 import React from 'react';
 import Error404 from './Components/Error404';
 import error from '../errors/assets/cuate.png';

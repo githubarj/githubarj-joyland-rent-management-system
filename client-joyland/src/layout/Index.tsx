@@ -15,7 +15,6 @@ const AppLayout: React.FC = () => {
   return (
     <MantineProvider theme={theme} defaultColorScheme={'auto'}>
       <AppShell
-      padding={'sm'}
         header={{ height: 55 }}
         footer={{ height: 45 }}
         layout='alt'
