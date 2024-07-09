@@ -1,4 +1,4 @@
-interface invoice {
+interface invoiceData {
   id: number;
   houseNumber: string;
   tenant: string;
@@ -8,7 +8,7 @@ interface invoice {
   type: 'water' | 'rent' | 'repair' | 'expense';
 }
 
-export const invoices: invoice[] = [
+export const invoicesData: invoiceData[] = [
   {
     id: 432,
     houseNumber: 'House 57',
