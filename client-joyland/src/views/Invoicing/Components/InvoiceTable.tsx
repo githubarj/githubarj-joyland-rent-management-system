@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
+import dayjs from 'dayjs';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
 import {
+  Badge,
   Button,
   Flex,
   Grid,
@@ -8,52 +11,64 @@ import {
   Paper,
   Table,
   TableData,
+  Text,
 } from '@mantine/core';
 import { InvoiceService } from '../../../services/_invoice.service';
+import { invoices } from '../../../helpers/dataShapes';
+import invoicingStyles from '../invoicingStyles.module.scss';
 
 const InvoiceTable: React.FC = () => {
-  const [dataSource, setDataSource] = useState<{
-    keys: string[];
-    values: any[][];
-  }>({
-    keys: [], // Initial empty array
-    values: [],
-  });
+  const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
 
+  
   useEffect(() => {
     fetchInvoices();
   }, []);
-
+  
   const fetchInvoices = () => {
     InvoiceService.getInvoices()
-      .then((res) => processData(res.data))
+    .then((res) => tableBody(res.data))
       .then((data) => setDataSource(data))
       .catch((err) => console.log(err));
+    };
+    
+  const tableHeaders: string[] = [
+    '#',
+    'HOUSE NUMBER',
+    'TENANT',
+    'TOTAL',
+    'ISSUE DATE',
+    'BALANCE',
+    'TYPE',
+  ];
+  
+  
+  dayjs.extend(advancedFormat);
+  const tableBody = (items: invoices[]): ReactNode[][] => {
+    return items.map((item) => [
+      <Text c={'blue'}>{item.id}</Text>,
+      <Text> {item.houseNumber} </Text>,
+      <Text> {item.tenant} </Text>,
+      <Text> {item.total} Ksh </Text>,
+      <Text> {dayjs(item.issueDate).format('Do MMMM YYYY')} </Text>,
+      <div>
+        {item.balance <= 0 ? (
+          <Badge color='green' variant='light'>Paid</Badge>
+        ) : (
+          `${parseFloat(item.balance.toFixed(2))} Ksh`
+        )}
+      </div>,
+      <Text>{item.type} </Text>,
+    ]);
   };
 
-  interface MyObject {
-    [key: string]: any;
-  }
-
-  function processData(data: MyObject[]): { keys: string[]; values: any[][] } {
-    if (data.length === 0) {
-      return { keys: [], values: [] };
-    }
-
-    const keys = Object.keys(data[0]);
-    const values = data.map((obj) => keys.map((key) => obj[key]));
-
-    return { keys, values };
-  }
-
   const tableData: TableData = {
-    caption: 'Some elements from periodic table',
-    head: dataSource.keys,
-    body: dataSource.values,
+    head: tableHeaders,
+    body: dataSource,
   };
 
   return (
-    <Paper shadow='0 4px 8px rgba(0, 0, 0, 0.1)' radius={5}>
+    <Paper shadow='xs' radius={5} mb={20}>
       <Grid px={15} py={20} display={'flex'} justify='space-between'>
         <Grid.Col span={'content'}>
           <MultiSelect placeholder='Action' data={['Pending', 'paid']} />
@@ -68,8 +83,9 @@ const InvoiceTable: React.FC = () => {
       <Table
         data={tableData}
         highlightOnHover
-        styles={{
-          thead: { backgroundColor: '#f4f5fa' },
+        striped={'even'}
+        classNames={{
+          thead: invoicingStyles.headers,
         }}
       />
     </Paper>

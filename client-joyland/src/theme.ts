@@ -17,7 +17,7 @@ const theme = createTheme({
       '#4c5763',
     ],
   },
-  
+ 
 }) as MantineTheme;
 
 export default theme;

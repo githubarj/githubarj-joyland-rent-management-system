@@ -1,4 +1,12 @@
 $body-background-light: #f4f5fa;
-$body-background-dark: #312d4b;
+$body-background-dark: #2B2B2B;
 
 
+%body-background {
+    @include light {
+        background: $body-background-light;
+    }
+    @include dark {
+        background: $body-background-dark;
+    }
+}

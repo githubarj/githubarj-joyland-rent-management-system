@@ -1,11 +1,4 @@
-%body-background {
-    @include light {
-        background: $body-background-light;
-    }
-    // @include dark {
-    //     background: $body-background-dark;
-    // }
-}
+
 
 .header {
     @extend %body-background;
