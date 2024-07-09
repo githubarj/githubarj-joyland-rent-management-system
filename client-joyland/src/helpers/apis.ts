@@ -1,2 +1,2 @@
 // Invoice apis
-export const GET_INVOICES = '';
+export const GET_INVOICES = 'invoices';

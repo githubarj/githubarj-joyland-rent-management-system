@@ -4,7 +4,7 @@ import { DateTimePicker } from '@mantine/dates';
 
 const SearchInvoices: React.FC = () => {
   return (
-    <Paper py={'lg'} px={'md'} mb={20}>
+    <Paper py={'lg'} px={'md'} mb={20} shadow='0 4px 8px rgba(0, 0, 0, 0.1)' radius={5}>
       <Title order={2} mb={10}>
         Filters
       </Title>

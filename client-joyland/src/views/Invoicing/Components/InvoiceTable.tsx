@@ -1,34 +1,59 @@
-import React from 'react';
-import { Button, Flex, Grid, Input, MultiSelect, Paper, Table, TableData } from '@mantine/core';
+import React, { useEffect, useState } from 'react';
+import {
+  Button,
+  Flex,
+  Grid,
+  Input,
+  MultiSelect,
+  Paper,
+  Table,
+  TableData,
+} from '@mantine/core';
+import { InvoiceService } from '../../../services/_invoice.service';
 
 const InvoiceTable: React.FC = () => {
+  const [dataSource, setDataSource] = useState<{
+    keys: string[];
+    values: any[][];
+  }>({
+    keys: [], // Initial empty array
+    values: [],
+  });
 
-  const tableHeaders = [
-    'Id',
-    'House Number',
-    'Tenant',
-    'Total',
-    'Issue Date',
-    'Balance',
-  ];
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
-  const tableDatas = [
+  const fetchInvoices = () => {
+    InvoiceService.getInvoices()
+      .then((res) => processData(res.data))
+      .then((data) => setDataSource(data))
+      .catch((err) => console.log(err));
+  };
 
-  ]
+  interface MyObject {
+    [key: string]: any;
+  }
+
+  function processData(data: MyObject[]): { keys: string[]; values: any[][] } {
+    if (data.length === 0) {
+      return { keys: [], values: [] };
+    }
+
+    const keys = Object.keys(data[0]);
+    const values = data.map((obj) => keys.map((key) => obj[key]));
+
+    return { keys, values };
+  }
 
   const tableData: TableData = {
     caption: 'Some elements from periodic table',
-    head: ['Element position', 'Atomic mass', 'Symbol', 'Element name'],
-    body: [
-      [6, 12.011, 'C', 'Carbon'],
-      [7, 14.007, 'N', 'Nitrogen'],
-      [39, 88.906, 'Y', 'Yttrium'],
-      [56, 137.33, 'Ba', 'Barium'],
-      [58, 140.12, 'Ce', 'Cerium'],
-    ],
+    head: dataSource.keys,
+    body: dataSource.values,
   };
+
   return (
-    <Paper>
+    <Paper shadow='0 4px 8px rgba(0, 0, 0, 0.1)' radius={5}>
       <Grid px={15} py={20} display={'flex'} justify='space-between'>
         <Grid.Col span={'content'}>
           <MultiSelect placeholder='Action' data={['Pending', 'paid']} />
@@ -40,7 +65,13 @@ const InvoiceTable: React.FC = () => {
           </Flex>
         </Grid.Col>
       </Grid>
-      <Table data={tableData} highlightOnHover />
+      <Table
+        data={tableData}
+        highlightOnHover
+        styles={{
+          thead: { backgroundColor: '#f4f5fa' },
+        }}
+      />
     </Paper>
   );
 };
