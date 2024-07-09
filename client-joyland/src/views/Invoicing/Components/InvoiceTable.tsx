@@ -12,11 +12,14 @@ import {
   Table,
   TableData,
   Text,
+  Tooltip,
+  UnstyledButton,
 } from '@mantine/core';
 import { InvoiceService } from '../../../services/_invoice.service';
 import { invoices } from '../../../helpers/dataShapes';
 import invoicingStyles from '../invoicingStyles.module.scss';
 import CustomPagination from './Pagination';
+import { MdDeleteOutline, MdOutlineModeEdit } from 'react-icons/md';
 
 const InvoiceTable: React.FC = () => {
   const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
@@ -40,6 +43,7 @@ const InvoiceTable: React.FC = () => {
     'ISSUE DATE',
     'BALANCE',
     'TYPE',
+    'ACTION',
   ];
 
   dayjs.extend(advancedFormat);
@@ -60,6 +64,18 @@ const InvoiceTable: React.FC = () => {
         )}
       </div>,
       <Text>{item.type} </Text>,
+      <Flex gap={'xs'} align={'center'}>
+        <Tooltip label={'edit'}>
+          <UnstyledButton>
+            <MdOutlineModeEdit color='green'/>
+          </UnstyledButton>
+        </Tooltip>
+        <Tooltip label={'delete'}>
+          <UnstyledButton>
+            <MdDeleteOutline color='red' />
+          </UnstyledButton>
+        </Tooltip>
+      </Flex>,
     ]);
   };
 
