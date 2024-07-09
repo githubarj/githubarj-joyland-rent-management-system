@@ -1,3 +1,6 @@
 .headers {
     @extend %body-background
 }
+.body {
+    border-bottom: none!important;
+}

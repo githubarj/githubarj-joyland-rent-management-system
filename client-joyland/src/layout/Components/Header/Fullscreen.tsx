@@ -8,7 +8,7 @@ const Fullscreen: React.FC = () => {
      const { toggle, fullscreen } = useFullscreen();
   return (
     <Tooltip
-      label='Switch themes'
+  label={!fullscreen ? 'Fullscreen' : 'Exit Fullscreen'}
       openDelay={500}
       transitionProps={{ transition: 'pop' }}
     >

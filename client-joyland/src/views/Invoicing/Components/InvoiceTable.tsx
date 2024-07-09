@@ -16,22 +16,22 @@ import {
 import { InvoiceService } from '../../../services/_invoice.service';
 import { invoices } from '../../../helpers/dataShapes';
 import invoicingStyles from '../invoicingStyles.module.scss';
+import CustomPagination from './Pagination';
 
 const InvoiceTable: React.FC = () => {
   const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
 
-  
   useEffect(() => {
     fetchInvoices();
   }, []);
-  
+
   const fetchInvoices = () => {
     InvoiceService.getInvoices()
-    .then((res) => tableBody(res.data))
+      .then((res) => tableBody(res.data))
       .then((data) => setDataSource(data))
       .catch((err) => console.log(err));
-    };
-    
+  };
+
   const tableHeaders: string[] = [
     '#',
     'HOUSE NUMBER',
@@ -41,8 +41,7 @@ const InvoiceTable: React.FC = () => {
     'BALANCE',
     'TYPE',
   ];
-  
-  
+
   dayjs.extend(advancedFormat);
   const tableBody = (items: invoices[]): ReactNode[][] => {
     return items.map((item) => [
@@ -53,7 +52,9 @@ const InvoiceTable: React.FC = () => {
       <Text> {dayjs(item.issueDate).format('Do MMMM YYYY')} </Text>,
       <div>
         {item.balance <= 0 ? (
-          <Badge color='green' variant='light'>Paid</Badge>
+          <Badge color='green' variant='light'>
+            Paid
+          </Badge>
         ) : (
           `${parseFloat(item.balance.toFixed(2))} Ksh`
         )}
@@ -80,14 +81,18 @@ const InvoiceTable: React.FC = () => {
           </Flex>
         </Grid.Col>
       </Grid>
-      <Table
-        data={tableData}
-        highlightOnHover
-        striped={'even'}
-        classNames={{
-          thead: invoicingStyles.headers,
-        }}
-      />
+      <Table.ScrollContainer minWidth={500}>
+        <Table
+          stickyHeader
+          data={tableData}
+          highlightOnHover
+          striped={'even'}
+          classNames={{
+            thead: invoicingStyles.headers,
+          }}
+        />
+      </Table.ScrollContainer>
+      <CustomPagination />
     </Paper>
   );
 };
