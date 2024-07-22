@@ -19,7 +19,7 @@ import { InvoiceService } from '../../../services/_invoice.service';
 import { invoices } from '../../../helpers/dataShapes';
 import invoicingStyles from '../invoicingStyles.module.scss';
 import CustomPagination from './Pagination';
-import { MdDeleteOutline, MdOutlineModeEdit } from 'react-icons/md';
+import { MdDeleteOutline, MdOutlineModeEdit, MdOutlineRemoveRedEye } from 'react-icons/md';
 
 const InvoiceTable: React.FC = () => {
   const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
@@ -65,9 +65,14 @@ const InvoiceTable: React.FC = () => {
       </div>,
       <Text>{item.type} </Text>,
       <Flex gap={'xs'} align={'center'}>
+        <Tooltip label={'view'}>
+          <UnstyledButton>
+            <MdOutlineRemoveRedEye color='green' />
+          </UnstyledButton>
+        </Tooltip>
         <Tooltip label={'edit'}>
           <UnstyledButton>
-            <MdOutlineModeEdit color='green'/>
+            <MdOutlineModeEdit color='blue' />
           </UnstyledButton>
         </Tooltip>
         <Tooltip label={'delete'}>

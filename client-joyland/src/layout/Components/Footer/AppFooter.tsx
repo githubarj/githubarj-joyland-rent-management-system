@@ -1,15 +1,15 @@
 import { AppShell, Flex, Text } from '@mantine/core';
 import React from 'react';
 import layout from '../../styles/layout.module.scss';
-import { FcLike } from 'react-icons/fc';
+
 
 const AppFooter: React.FC = () => {
   return (
     <AppShell.Footer className={layout.footer} px={'sm'}>
       <Flex align={'center'} gap={'sm'}>
-        <Text>
-          Made with <FcLike /> by
-        </Text>
+        
+     
+      
         <Text
           component='a'
           href='https://githuba.netlify.app/'
