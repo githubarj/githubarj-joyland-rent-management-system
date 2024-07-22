@@ -1,6 +1,7 @@
 import React from 'react';
 import { redirect, RouteObject } from 'react-router-dom';
-import InvoiceList from './Components/InvoiceList'
+import InvoiceList from './Components/InvoiceList';
+import DetailsInvoice from './Components/DetailsInvoice';
 
 export const invoiceRoutes: RouteObject = {
   path: 'Invoicing',
@@ -12,6 +13,10 @@ export const invoiceRoutes: RouteObject = {
     {
       path: 'invoice-list',
       element: React.createElement(InvoiceList),
+    },
+    {
+      path: 'invoice-details',
+      element: React.createElement(DetailsInvoice),
     },
   ],
 };

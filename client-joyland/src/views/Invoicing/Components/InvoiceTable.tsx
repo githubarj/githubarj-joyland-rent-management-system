@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Flex,
+  getOptionsLockup,
   Grid,
   Input,
   MultiSelect,
@@ -19,10 +20,16 @@ import { InvoiceService } from '../../../services/_invoice.service';
 import { invoices } from '../../../helpers/dataShapes';
 import invoicingStyles from '../invoicingStyles.module.scss';
 import CustomPagination from './Pagination';
-import { MdDeleteOutline, MdOutlineModeEdit, MdOutlineRemoveRedEye } from 'react-icons/md';
+import {
+  MdDeleteOutline,
+  MdOutlineModeEdit,
+  MdOutlineRemoveRedEye,
+} from 'react-icons/md';
+import useCustomNavigation from '../../../hooks/useCustomNavigation';
 
 const InvoiceTable: React.FC = () => {
   const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
+  const { goTo } = useCustomNavigation();
 
   useEffect(() => {
     fetchInvoices();
@@ -66,7 +73,7 @@ const InvoiceTable: React.FC = () => {
       <Text>{item.type} </Text>,
       <Flex gap={'xs'} align={'center'}>
         <Tooltip label={'view'}>
-          <UnstyledButton>
+          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-details' })}>
             <MdOutlineRemoveRedEye color='green' />
           </UnstyledButton>
         </Tooltip>
@@ -90,7 +97,7 @@ const InvoiceTable: React.FC = () => {
   };
 
   return (
-    <Paper shadow='xs' radius={5} mb={20}>
+    <Paper shadow='xs' radius={5} mb={20} >
       <Grid px={15} py={20} display={'flex'} justify='space-between'>
         <Grid.Col span={'content'}>
           <MultiSelect placeholder='Action' data={['Pending', 'paid']} />
