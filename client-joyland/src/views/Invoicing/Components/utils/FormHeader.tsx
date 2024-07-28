@@ -1,4 +1,4 @@
-import { Flex, Image, Text, Title } from '@mantine/core';
+import { Flex, Image, Title } from '@mantine/core';
 import React from 'react';
 import freelance from '../../../../../public/assets/freeLance.png';
 import { DatePickerInput } from '@mantine/dates';
