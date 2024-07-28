@@ -5,7 +5,6 @@ import {
   Badge,
   Button,
   Flex,
-  getOptionsLockup,
   Grid,
   Input,
   MultiSelect,
