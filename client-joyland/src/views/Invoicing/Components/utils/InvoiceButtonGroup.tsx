@@ -5,7 +5,7 @@ import { MdOutlineAttachMoney } from 'react-icons/md';
 
 const InvoiceButtonGroup: React.FC = () => {
   return (
-    <Paper shadow='xs' p={10} w={'fit-content'} className='flex flex-row md:flex-col gap-2 '>
+    <Paper shadow='xs' p={10} w={'fit-content'} className='flex flex-row md:flex-col gap-2 flex-wrap '>
       <Button variant='filled' leftSection={<VscSend />}>
         SEND INVOICE
       </Button>

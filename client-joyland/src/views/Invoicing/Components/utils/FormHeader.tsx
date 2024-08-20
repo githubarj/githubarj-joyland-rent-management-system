@@ -5,7 +5,7 @@ import { DatePickerInput } from '@mantine/dates';
 
 const FormHeader: React.FC = () => {
   return (
-    <Flex className='justify-between'>
+    <Flex className='justify-between flex-wrap gap-3   '>
       <div className='flex flex-col gap-2'>
         <div className='flex gap-2'>
           <Image src={freelance} fit='contain' h={'xl'} />

@@ -6,7 +6,7 @@ import SearchTenant from '../../../../utils/components/SearchTenant';
 
 const InvoiceTo: React.FC = () => {
   return (
-    <Flex className='justify-between'>
+    <Flex className='justify-between flex-wrap gap-4'>
       <SearchTenant />
       <div className='flex flex-col'>
         <Text>House No: a1</Text>

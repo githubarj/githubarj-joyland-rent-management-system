@@ -18,7 +18,7 @@ const InvoiceItem: React.FC = () => {
   ));
   return (
     <>
-      <div className='w-full flex justify-between p-4 rounded-md border '>
+      <div className='w-full flex justify-between p-4 rounded-md border'>
         <div className='flex flex-wrap gap-4 '>
           <Combobox
             store={combobox}
@@ -57,7 +57,7 @@ const InvoiceItem: React.FC = () => {
         </div>
         <div className=''>
           <Tooltip label="Remove item">
-            <CloseButton size={"sm"} c='red' />
+            <CloseButton size={"sm"} />
           </Tooltip>
         </div>
       </div>

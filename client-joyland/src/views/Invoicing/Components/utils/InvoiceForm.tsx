@@ -3,6 +3,8 @@ import React from 'react';
 import FormHeader from './FormHeader';
 import InvoiceTo from './InvoiceTo';
 import InvoiceItem from './InvoiceItem';
+import InvoiceFooter from './InvoiceFooter';
+import Notes from './Notes';
 
 const InvoiceForm: React.FC = () => {
   return (
@@ -14,6 +16,9 @@ const InvoiceForm: React.FC = () => {
         <Divider my={'xl'} />
         <InvoiceItem />
         <Divider my={"xl"} />
+        <InvoiceFooter />
+        <Divider my={"xl"} />
+        <Notes />
       </form>
     </Paper>
   )
