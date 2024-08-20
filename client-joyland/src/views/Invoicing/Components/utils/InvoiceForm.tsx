@@ -1,7 +1,8 @@
-import { Divider, Flex, Image, Paper } from '@mantine/core';
+import { Divider, Paper } from '@mantine/core';
 import React from 'react';
 import FormHeader from './FormHeader';
 import InvoiceTo from './InvoiceTo';
+import InvoiceItem from './InvoiceItem';
 
 const InvoiceForm: React.FC = () => {
   return (
@@ -10,9 +11,12 @@ const InvoiceForm: React.FC = () => {
         <FormHeader />
         <Divider my={'xl'} />
         <InvoiceTo />
+        <Divider my={'xl'} />
+        <InvoiceItem />
+        <Divider my={"xl"} />
       </form>
     </Paper>
-  );
+  )
 };
 
 export default InvoiceForm;
