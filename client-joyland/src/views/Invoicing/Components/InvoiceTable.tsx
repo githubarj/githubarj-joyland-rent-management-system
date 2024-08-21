@@ -72,12 +72,12 @@ const InvoiceTable: React.FC = () => {
       <Text>{item.type} </Text>,
       <Flex gap={'xs'} align={'center'}>
         <Tooltip label={'view'}>
-          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-details' })}>
+          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-page' })}>
             <MdOutlineRemoveRedEye color='green' />
           </UnstyledButton>
         </Tooltip>
         <Tooltip label={'edit'}>
-          <UnstyledButton>
+          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-page' })}>
             <MdOutlineModeEdit color='blue' />
           </UnstyledButton>
         </Tooltip>
@@ -95,6 +95,10 @@ const InvoiceTable: React.FC = () => {
     body: dataSource,
   };
 
+  const createInvoice = () => {
+    goTo({ to: "/invoicing/invoice-page" })
+  }
+
   return (
     <Paper shadow='xs' radius={5} mb={20} >
       <Grid px={15} py={20} display={'flex'} justify='space-between'>
@@ -104,7 +108,7 @@ const InvoiceTable: React.FC = () => {
         <Grid.Col span={'content'}>
           <Flex gap={'md'}>
             <Input placeholder='Search  Invoice' />
-            <Button>Create invoice </Button>
+            <Button onClick={createInvoice}>Create invoice </Button>
           </Flex>
         </Grid.Col>
       </Grid>

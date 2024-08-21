@@ -66,4 +66,4 @@ const InvoiceItem: React.FC = () => {
   )
 }
 
-export default InvoiceItem 
+export default InvoiceItem

@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirect, RouteObject } from 'react-router-dom';
 import InvoiceList from './Components/InvoiceList';
-import DetailsInvoice from './Components/DetailsInvoice';
+import InvoicePage from './Components/DetailsInvoice';
 
 export const invoiceRoutes: RouteObject = {
   path: 'Invoicing',
@@ -15,8 +15,8 @@ export const invoiceRoutes: RouteObject = {
       element: React.createElement(InvoiceList),
     },
     {
-      path: 'invoice-details',
-      element: React.createElement(DetailsInvoice),
+      path: 'invoice-page',
+      element: React.createElement(InvoicePage),
     },
   ],
 };

@@ -57,7 +57,7 @@ const links: navLinksProps[] = [
       },
       {
         label: 'Create Invoice',
-        to: 'invoicing/create-invoice',
+        to: 'invoicing/invoice-page',
       },
       {
         label: 'Repairs',
