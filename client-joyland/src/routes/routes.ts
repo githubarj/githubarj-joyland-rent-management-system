@@ -10,6 +10,7 @@ import ErrorPage from '../views/errors/Index';
 import { invoiceRoutes } from '../views/Invoicing/Index';
 import { authRoutes } from '../views/auth';
 import { dashboardRoutes } from '../views/dashboard';
+import { tentantRoutes } from '../views/tenants';
 
 export const routes: RouteObject[] = [
   {
@@ -18,6 +19,7 @@ export const routes: RouteObject[] = [
     children: [
       dashboardRoutes,
       invoiceRoutes,
+      tentantRoutes,
       {
         path: 'dashboard',
         element: React.createElement(Dashboard),
