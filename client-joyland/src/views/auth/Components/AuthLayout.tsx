@@ -5,7 +5,7 @@ import { Outlet } from "react-router-dom"
 
 const AuthLayout: React.FC = () => {
   return (
-    <Container className="bg-slate-400">
+    <Container fluid className=" h-screen bg-slate-200">
       <Outlet />
     </Container >
   )

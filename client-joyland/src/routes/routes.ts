@@ -1,5 +1,5 @@
 import React from 'react';
-import { redirect, RouteObject } from 'react-router-dom';
+import { RouteObject } from 'react-router-dom';
 import AppLayout from '../layout/Index';
 import Dashboard from '../views/dashboard/Index';
 import Admin from '../views/admin';
@@ -44,5 +44,5 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  ...authRoutes,
+  authRoutes,
 ];
