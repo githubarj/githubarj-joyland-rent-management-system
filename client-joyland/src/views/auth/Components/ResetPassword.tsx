@@ -2,32 +2,33 @@ import {
   Paper,
   Title,
   Text,
-  TextInput,
   Button,
   Container,
   Anchor,
   Center,
   Box,
   rem,
+  PasswordInput,
   Stack,
 } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import React from 'react';
 import useCustomNavigation from '../../../hooks/useCustomNavigation';
 
-const ForgotPassword: React.FC = () => {
+const ResetPassword: React.FC = () => {
   const { goTo } = useCustomNavigation()
   return (
     <Container size={460} my={30}>
       <Title ta={'center'} >
-        Forgot your password?
+        Reset Password &#128274;
       </Title>
       <Text c="dimmed" fz="sm" ta="center">
-        Enter your email to get a reset link
+        Your new password must be different  from <br />previously used passwords
       </Text>
 
       <Paper withBorder shadow="md" p={30} radius="md" mt="xl">
-        <TextInput label="Your email" placeholder="Email" required />
+        <PasswordInput label="New Password" placeholder="New password" required mt="md" />
+        <PasswordInput label="Confirm Password" placeholder="Confirm password" required mt="md" />
         <Stack ta={'center'} mt="lg">
           <Button >Reset password</Button>
           <Anchor c="dimmed" onClick={() => goTo({ to: "/login" })} size="sm">
@@ -42,4 +43,4 @@ const ForgotPassword: React.FC = () => {
   );
 }
 
-export default ForgotPassword 
+export default ResetPassword 
