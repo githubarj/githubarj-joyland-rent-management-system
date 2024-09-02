@@ -8,16 +8,15 @@ import Notifications from '../views/notifications/Index';
 import Settings from '../views/settings/Index';
 import ErrorPage from '../views/errors/Index';
 import { invoiceRoutes } from '../views/Invoicing/Index';
+import { authRoutes } from '../views/auth';
+import { dashboardRoutes } from '../views/dashboard';
 
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: React.createElement(AppLayout),
     children: [
-      {
-        index: true,
-        loader: () => redirect('dashboard'),
-      },
+      dashboardRoutes,
       invoiceRoutes,
       {
         path: 'dashboard',
@@ -45,4 +44,5 @@ export const routes: RouteObject[] = [
       },
     ],
   },
+  ...authRoutes,
 ];
