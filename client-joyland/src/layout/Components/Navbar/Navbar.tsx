@@ -3,7 +3,6 @@ import {
   Center,
   Flex,
   Image,
-  ScrollArea,
   Title,
 } from '@mantine/core';
 import React from 'react';

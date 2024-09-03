@@ -13,7 +13,7 @@ const Fullscreen: React.FC = () => {
       transitionProps={{ transition: 'pop' }}
     >
       <UnstyledButton className={layout.centerIcons}>
-        {fullscreen ? (
+        {!fullscreen ? (
           <MdFullscreen size={24} onClick={toggle} />
         ) : (
           <MdFullscreenExit size={24} onClick={toggle} />

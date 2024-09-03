@@ -36,13 +36,13 @@ const links: navLinksProps[] = [
     to: 'notifications',
   },
   {
-    label: 'Users',
-    to: 'users',
+    label: 'Tenants',
+    to: 'tenants',
     icon: FcBusinessman,
     children: [
       {
-        label: 'User Register',
-        to: 'user-register',
+        label: 'Tenant register',
+        to: 'tenants/tenants-register',
       },
     ],
   },
@@ -57,7 +57,7 @@ const links: navLinksProps[] = [
       },
       {
         label: 'Create Invoice',
-        to: 'invoicing/create-invoice',
+        to: 'invoicing/invoice-page',
       },
       {
         label: 'Repairs',
