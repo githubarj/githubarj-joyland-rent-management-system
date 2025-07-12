@@ -23,7 +23,7 @@ const AppLayout: React.FC = () => {
       header={{ height: 55 }}
       footer={{ height: 45 }}
       layout='alt'
-      withBorder={false}
+      withBorder={true}
       navbar={{
         width: 200,
         breakpoint: 'xs',
