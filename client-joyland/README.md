@@ -33,94 +33,104 @@ export default {
 # 🏠 Rent Management System – Backend Roadmap (Django + React)
 
 ## ✅ 1. Project Setup
-- [ ] Create Django project & initial app (`rentals`, `users`, etc.)
+- [ ] Create Django project & initial apps (`users`, `properties`, `tenants`, `invoices`, `payments`)
 - [ ] Set up virtual environment & `.env` config
 - [ ] Install essential packages (`djangorestframework`, `django-cors-headers`, `dj-database-url`, etc.)
 - [ ] Enable CORS for React frontend
+- [ ] PostgreSQL setup
 
 ---
 
 ## 🔐 2. Authentication & Authorization
 - [ ] Create `User` model (extend `AbstractUser` or use default)
 - [ ] Add user roles: `Admin`, `Landlord`, `Tenant`
-- [ ] JWT or session-based auth (`djangorestframework-simplejwt`)
-- [ ] Login / Logout / Password change APIs
-- [ ] Permissions based on role (e.g., only Admin can delete users)
-- [ ] Use `djangorestframework-simplejwt` for token-based auth
-- [ ] Consider integrating OAuth2 with `django-oauth-toolkit` (optional)
-- [ ] Enable HTTPS (especially in production)
-- [ ] Use CSRF protection for session-based auth (if used)
-- [ ] Secure all endpoints with permission classes
-- [ ] Use throttling (`DEFAULT_THROTTLE_CLASSES`) to prevent abuse
-- [ ] Install `django-axes` or similar for brute-force protection
-- [ ] Use `django-role-permissions` or `django-guardian` for role-based permissions
-- [ ] Create custom permissions for role-based API access
-- [ ] Validate all input with serializers to avoid injection
+- [ ] JWT auth via `djangorestframework-simplejwt`
+- [ ] Login / Logout / Password management APIs
+- [ ] Role-based permissions (admin-only actions, landlord vs tenant access)
+- [ ] Optional OAuth2 via `django-oauth-toolkit`
+- [ ] Enable HTTPS in production
+- [ ] CSRF protection for session auth (if used)
+- [ ] Secure endpoints using DRF permission classes
+- [ ] Add throttling to limit API abuse
+- [ ] Use `django-axes` to block brute-force attempts
+- [ ] Integrate `django-role-permissions` or `django-guardian`
+- [ ] Validate input via serializers
 
 ---
 
-## 🏘️ 3. Core Models & API Structure
-- [ ] **Property** model (name, address, units, landlord, etc.)
-- [ ] **Unit** model (belongs to property, rent amount, status)
-- [ ] **Tenant** profile (linked to user)
-- [ ] **Lease** model (unit, tenant, start/end date, monthly rent)
-- [ ] **Payment** model (amount, date, method, linked lease)
-- [ ] **MaintenanceRequest** model (tenant, unit, description, status)
-- [ ] **Notification** system (optional for overdue rent, upcoming due)
+## 🏘️ 3. Core Models & Structure
+
+### 🧍 Users & Tenants
+- `TenantProfile`: phone, unit (FK), status, move-in/out dates
+
+### 🏢 Properties & Units
+- `Property`: name, address, landlord (FK)
+- `Unit`: property (FK), unit_number, rent_amount, is_occupied
+
+### 📄 Invoices
+- `Invoice`: invoice_number, tenant (FK), unit (FK), issue_date, due_date, total, status, type (standard/repair/expense)
+- `InvoiceItem`: invoice (FK), item_name, cost, quantity, total_cost
+- `CancelledInvoice`: original_invoice (FK), reason, cancelled_by, timestamp
+
+### 💵 Payments & Transactions
+- `Payment`: invoice (FK), amount_paid, payment_method, transaction_id, paid_by, date
+- `TransactionRecord`: payment (FK), reference, status
+- `CancelledPayment`: original_payment (FK), reason, timestamp
+
+### 🛠️ Maintenance & Notifications (Optional)
+- `MaintenanceRequest`: unit, tenant, description, status
+- `Notification`: type, message, user (FK), created_at, is_read
 
 ---
 
-## 📦 4. Admin & CRUD APIs
-- [ ] Admin panel customization (if needed)
-- [ ] API endpoints for all models using Django REST Framework:
-  - [ ] Properties CRUD
-  - [ ] Units CRUD
-  - [ ] Leases CRUD
-  - [ ] Tenants CRUD
-  - [ ] Payments (list, create, update)
-  - [ ] Maintenance Requests
-- [ ] Pagination, filtering, and search
+## 📦 4. CRUD APIs
+- [ ] Properties CRUD
+- [ ] Units CRUD
+- [ ] Tenants CRUD
+- [ ] Invoices and Invoice Items CRUD
+- [ ] Payments & Manual Payment Recording
+- [ ] Maintenance Requests (optional)
+- [ ] Filtering, pagination, search
 
 ---
 
 ## 📅 5. Rent Tracking & Reminders
-- [ ] Auto-generate rent due entries each month
-- [ ] Status: paid, overdue, upcoming
-- [ ] Email or notification system (sendgrid/smtp)
+- [ ] Auto-generate monthly invoices from leases
+- [ ] Mark invoices as paid, overdue, upcoming
+- [ ] Send reminders (email/SMS/notification)
 
 ---
 
 ## 📊 6. Reporting & Dashboard APIs
-- [ ] Monthly revenue per property
-- [ ] Occupancy rate
+- [ ] Revenue by property, unit, or date
+- [ ] Invoice summary (by status/date)
 - [ ] Outstanding payments
-- [ ] Export to CSV/PDF (optional)
+- [ ] Export to CSV/PDF
 
 ---
 
 ## 🚀 7. Deployment & Production
-- [ ] Use `.env` and `decouple` for secrets
-- [ ] PostgreSQL database
-- [ ] Render / Railway / DigitalOcean / Qovery deployment
-- [ ] Set up domain, HTTPS, and logs
+- [ ] Use `.env` and `decouple` for config
+- [ ] PostgreSQL DB
+- [ ] Render / Railway / Qovery deployment
+- [ ] Enable HTTPS, logging, custom domain
+
+---
 
 ## ⚡ 8. Performance Enhancements
+- [ ] Redis caching (Django cache framework)
+- [ ] Optimize queries with `select_related`, `prefetch_related`
+- [ ] Throttle requests with DRF
+- [ ] CDN for static/media files
+- [ ] Load balancing support (platform/nginx)
 
-- [ ] Add Redis for caching (Django `cache` framework)
-- [ ] Cache frequent reads (e.g., property lists, tenant profiles)
-- [ ] Enable database query optimization (e.g., `.select_related`)
-- [ ] Use `django-ratelimit` or DRF throttling
-- [ ] Use a CDN (like Cloudflare) for static/media files
-- [ ] Load balancing via platform (Render, Railway, or NGINX config)
+---
 
-
-## 📋 9. Trello + GitHub Integration for Dev Workflow
+## 📋 9. Trello + GitHub Integration
 - [ ] Create Trello board (`Rent Management System`)
-- [ ] Set up lists: Ideas, To Do, In Progress, In Review, Done
-- [ ] Install **GitHub Power-Up** (free on Trello)
-- [ ] Link GitHub commits/PRs using `#cardID` in commit messages
-- [ ] Enable **Butler automations**:
-  - [ ] Auto-move cards when PR is merged
-  - [ ] Mark checklist items on commit
-- [ ] Use labels for task types (e.g., `backend`, `frontend`, `bug`)
-- [ ] Assign team members to cards
+- [ ] Lists: Ideas, To Do, In Progress, In Review, Done
+- [ ] GitHub Power-Up (free on Trello)
+- [ ] Use commit messages with `#cardID`
+- [ ] Butler automation: auto-move card on PR merge
+- [ ] Use labels (`backend`, `frontend`, `urgent`)
+- [ ] Assign tasks to team members
