@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import RegisterSerializer, LoginSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 
 # Create your views here.
 class RegisterView(APIView):
@@ -34,3 +35,36 @@ class LoginView(TokenObtainPairView):
             "access":str(refresh.access_token)
         })
 
+
+# class LogoutView(APIView):
+#     # permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         try:
+#             refresh_token = request.data.get("refresh")
+#             if not refresh_token:
+#                 return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+#             token = RefreshToken(refresh_token)
+#             token.blacklist()
+
+#             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+
+#         except TokenError as e:
+#             return Response({"error": f"Token error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+#         except Exception:
+#             return Response({"error": "Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutView(APIView):
+    def post(self, request):
+        print("HEADERS:", request.headers)
+        print("BODY:", request.data)
+
+        try:
+            refresh_token = request.data.get("refresh")
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"error": f"{str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
