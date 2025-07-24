@@ -25,3 +25,7 @@ dist-ssr
 
 # Ignore npm lockfile if using Yarn
 package-lock.json
+
+#pyton-django
+*/*.env
+*/venv/
