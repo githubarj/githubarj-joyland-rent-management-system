@@ -1,9 +1,9 @@
-import { showNotification } from '@mantine/notifications';
+
 import axios, {
   AxiosError,
-  AxiosRequestConfig,
+  
   InternalAxiosRequestConfig,
-  Method,
+  
 } from 'axios';
 import { baseURL } from './endpoints';
 
