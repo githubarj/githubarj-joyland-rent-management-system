@@ -11,6 +11,7 @@ export const authRoutes: RouteObject = {
   element: React.createElement(AuthLayout),
   children: [
     {
+      
       path: 'login',
       element: React.createElement(Login),
     },

@@ -17,7 +17,7 @@ export const routes: RouteObject[] = [
   authRoutes,
   {
     path: '/',
-    loader: requireAuth, 
+    loader: requireAuth,
     element: React.createElement(AppLayout),
     children: [
       dashboardRoutes,
