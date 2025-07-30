@@ -2,7 +2,7 @@ import { redirect, RouteObject } from 'react-router-dom';
 import TenantRegister from './Components/TenantRegister';
 import React from 'react';
 
-export const tentantRoutes: RouteObject = {
+export const tenantRoutes: RouteObject = {
   path: 'tenants',
   children: [
     {

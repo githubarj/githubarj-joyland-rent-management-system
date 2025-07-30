@@ -1,7 +1,7 @@
 import React from 'react';
 import { RouteObject } from 'react-router-dom';
 import AppLayout from '../layout/Index';
-import Dashboard from '../views/dashboard/Index';
+
 import Admin from '../views/admin';
 import Accounting from '../views/Accounting/Index';
 import Notifications from '../views/notifications/Index';
@@ -10,20 +10,19 @@ import ErrorPage from '../views/errors/Index';
 import { invoiceRoutes } from '../views/Invoicing/Index';
 import { authRoutes } from '../views/auth';
 import { dashboardRoutes } from '../views/dashboard';
-import { tentantRoutes } from '../views/tenants';
+import { tenantRoutes } from '../views/tenants';
+import { requireAuth } from '../utils/functions/requireAuth';
 
 export const routes: RouteObject[] = [
+  authRoutes,
   {
     path: '/',
+    loader: requireAuth, 
     element: React.createElement(AppLayout),
     children: [
       dashboardRoutes,
       invoiceRoutes,
-      tentantRoutes,
-      {
-        path: 'dashboard',
-        element: React.createElement(Dashboard),
-      },
+      tenantRoutes,
       {
         path: 'admin',
         element: React.createElement(Admin),
@@ -46,5 +45,4 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  authRoutes,
 ];

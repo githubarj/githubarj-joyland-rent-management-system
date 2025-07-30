@@ -1,15 +1,17 @@
-import { Container } from "@mantine/core"
-import React from "react"
-import { Outlet } from "react-router-dom"
-import authLayout from "../styles/authLayout.module.scss"
+import { Container } from '@mantine/core';
 
-const AuthLayout: React.FC = () => {
+import { Outlet } from 'react-router-dom';
+import authLayout from '../styles/authLayout.module.scss';
+
+const AuthLayout = () => {
   return (
-    <Container fluid className={`${authLayout.background} flex items-center  h-screen`}>
+    <Container
+      fluid
+      className={`${authLayout.background} ${authLayout.container}`}
+    >
       <Outlet />
-    </Container >
-  )
-}
+    </Container>
+  );
+};
 
-
-export default AuthLayout
+export default AuthLayout;

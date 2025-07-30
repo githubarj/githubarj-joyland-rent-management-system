@@ -1,6 +1,6 @@
 import React from 'react';
 import { redirect, RouteObject } from 'react-router-dom';
-import Dashboard from './Index';
+import Dashboard from './Components/Dashboard';
 
 export const dashboardRoutes: RouteObject = {
   path: 'Dashboard',
