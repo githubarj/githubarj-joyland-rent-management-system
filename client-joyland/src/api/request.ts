@@ -1,19 +1,20 @@
+import { showNotification } from '@mantine/notifications';
 import axios, {
   AxiosError,
   AxiosRequestConfig,
-  AxiosResponse,
   InternalAxiosRequestConfig,
+  Method,
 } from 'axios';
-import { baseURL } from './apis';
+import { baseURL } from './endpoints';
 
-const api = axios.create({
+export const request = axios.create({
   baseURL: baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-api.interceptors.request.use(
+request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
     if (token && config.headers) {
@@ -24,7 +25,7 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
-api.interceptors.request.use(
+request.interceptors.request.use(
   (response: InternalAxiosRequestConfig) => response,
   (error: AxiosError) => {
     if (error.response) {
@@ -39,3 +40,4 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
