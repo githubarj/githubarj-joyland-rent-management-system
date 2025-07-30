@@ -13,12 +13,21 @@
  * ```
  */
 
-import { AxiosRequestConfig } from 'axios';
 import { request } from '../request';
 import { auth } from '../endpoints';
 
-const handleLogin = (data?: AxiosRequestConfig<any>) => {
-  return request.get(auth.LOGIN, data);
+const handleLogin = (data: { username: string; password: string }) => {
+  return request.post(auth.LOGIN, data);
 };
 
-export { handleLogin };
+const handleRegister = (data: {
+  email: string;
+  username: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+}) => {
+  return request.post(auth.SIGN_UP, data);
+};
+
+export { handleLogin, handleRegister };

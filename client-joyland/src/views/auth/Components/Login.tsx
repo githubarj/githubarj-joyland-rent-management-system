@@ -12,13 +12,50 @@ import {
 } from '@mantine/core';
 import React from 'react';
 import useCustomNavigation from '../../../hooks/useCustomNavigation';
+import { useForm } from '@mantine/form';
+import { handleLogin } from '../../../api/services/__auth.service';
+import { showNotification } from '@mantine/notifications';
+import { AxiosError } from 'axios';
 
 const Login: React.FC = () => {
   const { goTo } = useCustomNavigation();
 
-  const form  = useForm({
-    initialVAlues
-  })
+  const form = useForm({
+    initialValues: {
+      username: '',
+      password: '',
+    },
+    validate: {
+      username: (value) =>
+        /^\S+@\S+\.\S+$/.test(value) ? null : 'Invalid email format',
+      password: (value) =>
+        /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)
+          ? null
+          : 'Must contain 8+ chars, a number & uppercase letter',
+    },
+  });
+
+  const handleSubmit = form.onSubmit(async ({ username, password }) => {
+    try {
+      const response = await handleLogin({
+        username,
+        password,
+      });
+      const { access, refresh } = response.data;
+      localStorage.setItem('token', access);
+      localStorage.setItem('refreshToken', refresh);
+      goTo({ to: '/home' });
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      if (error?.response?.status !== 500 || 401) {
+        showNotification({
+          title: 'Registration Failed',
+          message: error?.response?.data?.message || 'Something went wrong',
+          color: 'red',
+        });
+      }
+    }
+  });
 
   return (
     <Container size={540}>
@@ -27,14 +64,20 @@ const Login: React.FC = () => {
         Welcome to your rent management system &#128075;
       </Text>
 
-      <form>
+      <form onSubmit={handleSubmit}>
         <Paper withBorder shadow='md' p={30} mt={30} radius='md'>
-          <TextInput label='Email' placeholder='Email' required />
+          <TextInput
+            label='Email'
+            placeholder='Email'
+            required
+            {...form.getInputProps('username')}
+          />
           <PasswordInput
             label='Password'
             placeholder='Your password'
             required
             mt='md'
+            {...form.getInputProps('password')}
           />
           <Group justify='space-between' mt='lg'>
             <Checkbox label='Remember me' />
@@ -53,6 +96,6 @@ const Login: React.FC = () => {
       </form>
     </Container>
   );
-}
+};
 
-export default Login
+export default Login;
