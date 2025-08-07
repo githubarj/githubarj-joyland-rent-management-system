@@ -33,6 +33,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_landlord = models.BooleanField(default=False)
     is_tenant = models.BooleanField(default=False)
 
+    verified_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

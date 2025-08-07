@@ -1,6 +1,10 @@
-from django.utils.http import urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_decode,urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes
 from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.utils.timezone import now
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -65,6 +69,7 @@ class VerifyEmailView(APIView):
                 return Response({"message": "Account already verified"}, status=status.HTTP_200_OK)
             
             user.is_active = True
+            user.verified_at = now()
             user.save()
 
             return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)
@@ -72,6 +77,47 @@ class VerifyEmailView(APIView):
         except Exception as e:
             return Response({"error":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class ResendVerificationView(APIView):
+    @swagger_auto_schema(
+        operation_summary="Resend verification email",
+        tags=['Auth'],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format='email', description="The email of the user to resend the verification link to")
+            },
+            required=['email']
+        ),
+        responses={
+            200: "Verification email resent",
+            400: "Invalid request or user already verified"
+        }
+    )
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+            if user.is_active:
+                return Response({"message": "Account already verified."}, status=status.HTTP_400_BAD_REQUEST)
+
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            verification_url = f"{settings.FRONTEND_BASE_URL}/verify-email/{uid}/{token}/"
+
+            send_mail(
+                subject="Resend: Verify your account",
+                message=f"Click the link to verify your account: {verification_url}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False
+            )
+
+            return Response({"message": "Verification email resent."}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+        
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
