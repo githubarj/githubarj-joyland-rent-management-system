@@ -2,12 +2,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import RegisterSerializer, LoginSerializer
+from .serializers import ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from users.permissions import IsAuthenticatedAndActive
 
 
 # Create your views here.
@@ -97,3 +98,48 @@ class LogoutView(APIView):
             return Response({"error": f"Token error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": f"{str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+class UserMeView(APIView):
+    
+    permission_classes = [IsAuthenticatedAndActive]
+    serializer_class = UserDetailSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Get Authenticated User Details",
+        operation_description="Returns authenticated user's details including roles.",
+        responses={200: UserDetailSerializer()},
+        security=[{"Bearer": []}]
+    )
+
+    def get(self, request):
+        serializer =  UserDetailSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticatedAndActive]
+    serializer_class = ChangePasswordSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Change user password",
+        request_body=ChangePasswordSerializer,
+        responses={
+            200: openapi.Response(description="Password changed successfully"),
+            400: openapi.Response(description="Validation error"),
+            401: openapi.Response(description="Authentication credentials were not provided"),
+        },
+        tags=['Auth'], 
+    )
+    def put(self, request):
+
+        user = request.user
+        serializer = ChangePasswordSerializer(data = request.data, context={'request':request})
+
+        if serializer.is_valid():
+            if not user.check_password(serializer.validated_data['old_password']):
+                return Response({"error":"Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            return Response({"message":"Password changed Successfuly"}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

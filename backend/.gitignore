@@ -29,3 +29,4 @@ package-lock.json
 #pyton-django
 */*.env
 */venv/
+.env

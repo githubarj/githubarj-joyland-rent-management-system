@@ -34,6 +34,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_tenant = models.BooleanField(default=False)
 
     date_joined = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]
