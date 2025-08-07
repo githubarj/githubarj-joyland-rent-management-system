@@ -148,7 +148,6 @@ REST_FRAMEWORK = {
     )
 }
 
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # ⏱️ 60 min
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),    
@@ -161,3 +160,7 @@ AUTHENTICATION_BACKENDS = [
     'users.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@rentms.com'
+FRONTEND_BASE_URL = 'http://localhost:5173' 

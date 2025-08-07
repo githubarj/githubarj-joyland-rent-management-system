@@ -29,7 +29,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)  # ✅ Hash the password
+        user.is_active = False # ✅ Inactivates the user until email verification
         user.save()
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        verification_url = f"{settings.FRONTEND_BASE_URL}/verify-email/{uid}/{token}/"
+
+        send_mail(
+            subject="Verify your account",
+            message=f"Click the link to verify your account: {verification_url}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False
+        )
+
         return user   
          
 class LoginSerializer(serializers.Serializer):

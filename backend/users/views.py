@@ -1,8 +1,12 @@
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer
+from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -16,12 +20,12 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
-        operation_summary="Register a new user",
+        operation_summary="Register a new user and send email verification",
         request_body=RegisterSerializer,
         tags=['Auth'], 
         responses={
-            201: openapi.Response(description="User registered successfully"),
-            400: openapi.Response(description="Validation error")
+            201: openapi.Response(description="User registered successfully. Verification email sent"),
+            400: openapi.Response(description="Validation failed or user already exists.")
         }
     )
     def post(self, request):
@@ -30,6 +34,8 @@ class RegisterView(APIView):
             serializer.save()
             return Response({"message": "User registered successfully"},  status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
