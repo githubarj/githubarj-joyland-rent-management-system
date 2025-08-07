@@ -56,7 +56,7 @@ class VerifyEmailView(APIView):
     def get(self, request, uidb64, token):
         try:
             uuid = urlsafe_base64_decode(uidb64).decode()
-            user = get_object_or_404(User, pk=uid)
+            user = get_object_or_404(User, pk=uuid)
 
             if not default_token_generator.check_token(user, token):
                 return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)

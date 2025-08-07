@@ -23,6 +23,12 @@
 - [ ] Use `django-axes` to block brute-force attempts
 - [ ] Integrate `django-role-permissions` or `django-guardian`
 - [ ] Validate input via serializers
+- [ ] Extra Security Tips (Optional)
+If you want to harden it further:
+Add expiration handling explicitly (default tokens expire roughly after 1–3 days based on password reset timing).
+Log email verification attempts for abuse protection.
+Rate-limit the verify-email/ endpoint to avoid brute-force attempts.
+Use HTTPS always to encrypt token transmission.
 
 ---
 
