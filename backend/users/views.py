@@ -36,6 +36,41 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class VerifyEmailView(APIView):
+    @swagger_auto_schema(
+        operation_summary="Verify user email with token",
+        tags=["Auth"],
+        manual_parameters=[
+            openapi.Parameter(
+                'uidb64', openapi.IN_PATH, description="Base64 encoded user ID", type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
+                'token', openapi.IN_PATH, description="Token from verification email", type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="Email verified successfully"),
+            400: openapi.Response(description="Invalid token or user not found")
+        }
+    )
+    def get(self, request, uidb64, token):
+        try:
+            uuid = urlsafe_base64_decode(uidb64).decode()
+            user = get_object_or_404(User, pk=uid)
+
+            if not default_token_generator.check_token(user, token):
+                return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if user.is_active:
+                return Response({"message": "Account already verified"}, status=status.HTTP_200_OK)
+            
+            user.is_active = True
+            user.save()
+
+            return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({"error":str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
