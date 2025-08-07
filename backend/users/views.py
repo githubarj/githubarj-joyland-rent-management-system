@@ -69,7 +69,7 @@ class VerifyEmailView(APIView):
                 return Response({"message": "Account already verified"}, status=status.HTTP_200_OK)
             
             user.is_active = True
-            user.verified_at = now()
+            user.email_verified_at = now()
             user.save()
 
             return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)
