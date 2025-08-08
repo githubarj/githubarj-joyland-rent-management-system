@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer
+from .serializers import ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer, PasswordResetConfirmSerializer, PasswordResetSerializer
 from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -118,6 +118,94 @@ class ResendVerificationView(APIView):
         except User.DoesNotExist:
             return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
         
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+    serializer_classes = [PasswordResetSerializer]
+
+    @swagger_auto_schema(
+        operation_summary="Request a password reset email",
+        tags=["Auth"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING, format="email"),
+            },
+            example={  # 👈 One inline example
+                "email": "user@example.com"
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                description="Reset email sent (generic success even if email not found)",
+                examples={
+                    "application/json": {"message": "Password reset link sent"}
+                },
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={
+                    "application/json": {"email": ["Enter a valid email address."]}
+                },
+            ),
+        },
+    )
+
+    def post(self, request):
+        serializer = PasswordResetSerializer(data = request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Password Reset link sent"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+    serializer_classes = [PasswordResetConfirmSerializer]
+
+    @swagger_auto_schema(
+        operation_summary="Reset password using uid/token",
+        tags=["Auth"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["uid", "token", "new_password", "confirm_password"],
+            properties={
+                "uid": openapi.Schema(type=openapi.TYPE_STRING, description="Base64-encoded user ID (uidb64)"),
+                "token": openapi.Schema(type=openapi.TYPE_STRING, description="Password reset token"),
+                "new_password": openapi.Schema(type=openapi.TYPE_STRING, format="password"),
+                "confirm_password": openapi.Schema(type=openapi.TYPE_STRING, format="password"),
+            },
+            example={  # 👈 Example payload shown in Swagger
+                "uid": "MQ",  # Example uidb64 for user id 1
+                "token": "5gq-0a2dcf7c9c9e1f0f0f6",  # Fake example token
+                "new_password": "string",
+                "confirm_password": "string"
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                description="Password reset successful",
+                examples={"application/json": {"message": "Password reset successful"}}
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={
+                    "application/json": {
+                        "confirm_password": "Passwords do not match.",
+                        "token": "Invalid or expired token.",
+                        "new_password": ["This password is too short. It must contain at least 8 characters."]
+                    }
+                }
+            ),
+        },
+    )
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Password reset successful"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
