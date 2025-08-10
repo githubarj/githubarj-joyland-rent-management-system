@@ -36,7 +36,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)  # ✅ Hash the password
-        user.is_active = False # ✅ Inactivates the user until email verification
+
+        user.email_verified_at = None
         user.save()
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))

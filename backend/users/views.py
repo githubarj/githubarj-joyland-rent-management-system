@@ -65,12 +65,9 @@ class VerifyEmailView(APIView):
             if not default_token_generator.check_token(user, token):
                 return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
             
-            if user.is_active:
-                return Response({"message": "Account already verified"}, status=status.HTTP_200_OK)
-            
-            user.is_active = True
-            user.email_verified_at = now()
-            user.save()
+            if not user.email_verified_at:
+                user.email_verified_at = now()
+                user.save()
 
             return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)
         
@@ -224,7 +221,31 @@ class LoginView(TokenObtainPairView):
                     }
                 }
             ),
-            400: openapi.Response(description="Invalid credentials")
+            400: openapi.Response(
+                description="Invalid credentials",
+                examples={"application/json": {"non_field_errors": ["Invalid email or password"]}}
+            ),
+            403: openapi.Response(
+                description="Email not verified",
+                examples={
+                    "application/json": {
+                        "error": "Email not verified. Please verify your email first.",
+                        "code": "email_not_verified",
+                        "email": "user@example.com",
+                        "resend_endpoint": "/resend-verification/"
+                    }
+                }
+            ),
+            403: openapi.Response(
+                description="User Inactive",
+                examples={
+                    "application/json": {
+                        "error": "Your account is disabled. Please contact support",
+                        "code": "account_disabled",
+                    }
+                }
+            ),
+            
         }
     )
     def post(self, request,*args, **kwargs):
@@ -233,12 +254,30 @@ class LoginView(TokenObtainPairView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
+        if not user.email_verified_at:
+            return Response(
+                {
+                    "error": "Email not verified. Please verify your email first.",
+                    "code": "email_not_verified",
+                    "email": user.email,                
+                    "resend_endpoint": "/resend-verification/"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Respect admin suspensions
+        if not user.is_active:
+            return Response(
+                {"error": "Your account is disabled. Please contact support.", "code": "account_disabled"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         refresh = RefreshToken.for_user(user)
 
         return Response({
             "refresh":str(refresh),
-            "access":str(refresh.access_token)
-        })
+            "access":str(refresh.access_token)            
+        }, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):
