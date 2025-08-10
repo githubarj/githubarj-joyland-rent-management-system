@@ -96,8 +96,8 @@ class ResendVerificationView(APIView):
             return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(email=email)
-            if user.is_active:
-                return Response({"message": "Account already verified."}, status=status.HTTP_400_BAD_REQUEST)
+            if user.email_verified_at:
+                return Response({"message": "Email Account already verified."}, status=status.HTTP_400_BAD_REQUEST)
 
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
