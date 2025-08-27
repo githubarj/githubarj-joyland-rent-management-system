@@ -15,8 +15,8 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
-import { InvoiceService } from '../../../services/_invoice.service';
-import { invoices } from '../../../helpers/dataShapes';
+import { InvoiceService } from '../../../api/services/_auth.service';
+import { invoices } from '../../../utils/constants/dataShapes';
 import invoicingStyles from '../invoicingStyles.module.scss';
 import CustomPagination from './Pagination';
 import {
@@ -72,12 +72,16 @@ const InvoiceTable: React.FC = () => {
       <Text>{item.type} </Text>,
       <Flex gap={'xs'} align={'center'}>
         <Tooltip label={'view'}>
-          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-page' })}>
+          <UnstyledButton
+            onClick={() => goTo({ to: '/invoicing/invoice-page' })}
+          >
             <MdOutlineRemoveRedEye color='green' />
           </UnstyledButton>
         </Tooltip>
         <Tooltip label={'edit'}>
-          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-page' })}>
+          <UnstyledButton
+            onClick={() => goTo({ to: '/invoicing/invoice-page' })}
+          >
             <MdOutlineModeEdit color='blue' />
           </UnstyledButton>
         </Tooltip>
@@ -96,11 +100,11 @@ const InvoiceTable: React.FC = () => {
   };
 
   const createInvoice = () => {
-    goTo({ to: "/invoicing/invoice-page" })
-  }
+    goTo({ to: '/invoicing/invoice-page' });
+  };
 
   return (
-    <Paper shadow='xs' radius={5} mb={20} >
+    <Paper shadow='xs' radius={5} mb={20}>
       <Grid px={15} py={20} display={'flex'} justify='space-between'>
         <Grid.Col span={'content'}>
           <MultiSelect placeholder='Action' data={['Pending', 'paid']} />
