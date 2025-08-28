@@ -34,8 +34,5 @@ dist-ssr
 __pycache__/
 *.py[cod]
 
-# Environment files
-.env
 
-# MacOS system files
-.DS_Store
+
