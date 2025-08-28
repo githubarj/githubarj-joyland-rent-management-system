@@ -1,8 +1,9 @@
 import { CanceledError } from 'axios';
 import { authEndpoints } from '../request/endpoints/auth.endpoints';
 import { ApiResponse } from '../../utils/constants/dataShapes';
-import { query } from '../request/axios/axiosInstance';
+import { query } from '../request/axios/request';
 import { useLoadingStore } from '../../store/useLoadingStore';
+import { useUserStore } from '../../store/useUserContext';
 
 const { setLoading } = useLoadingStore.getState();
 
@@ -16,10 +17,63 @@ const register = async (data: {
     const response = await query.post(authEndpoints.register, data);
     return response.data;
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration Error', error);
     return null;
   } finally {
     setLoading('register', false);
+  }
+};
+
+const verifyEmail = async (
+  uid?: string,
+  token?: string
+): Promise<ApiResponse | null> => {
+  setLoading('verify-email', true);
+  try {
+    const response = await query.get(
+      `${authEndpoints.verifyEmail}${uid}/${token}/`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Verification Error', error);
+    return null;
+  } finally {
+    setLoading('verify-email', false);
+  }
+};
+
+const login = async (data: {
+  email: string;
+  password: string;
+}): Promise<ApiResponse | null> => {
+  setLoading('login', true);
+  try {
+    const response = await query.post(authEndpoints.login, data);
+    localStorage.setItem('access_token', response.data.access);
+    localStorage.setItem('refresh_token', response.data.refresh);
+    return response.data;
+  } catch (error) {
+    console.error('Login Error', error);
+    return null;
+  } finally {
+    setLoading('login', false);
+  }
+};
+
+const fetchCurrentUser = async (): Promise<ApiResponse | null> => {
+  setLoading('user', true);
+  try {
+    const response = await query.get(authEndpoints.fetchCurrentUser);
+    const user = response.data;
+
+    useUserStore.getState().setUser(user);
+    return user;
+  } catch (error) {
+    console.error('Fetch Current User Error', error);
+    useUserStore.getState().clearUser();
+    return null;
+  } finally {
+    setLoading('user', false);
   }
 };
 
@@ -58,4 +112,4 @@ const refreshAccessToken = (): {
   };
 };
 
-export { register, refreshAccessToken };
+export { register, refreshAccessToken, login, verifyEmail, fetchCurrentUser };

@@ -5,9 +5,9 @@ export const authEndpoints = {
   passwordReset: '/password-reset/',
   passwordResetConfirm: '/password-reset-confirm/',
   resendVerification: '',
-  verifyEmail: '',
+  verifyEmail: '/verify-email/',
   changePassword: '/change_password/',
-
+  fetchCurrentUser: '/me',
   // temp
   refreshAccessToken: '/token/refresh/',
 };

@@ -1,10 +1,11 @@
 import { showNotification } from '@mantine/notifications';
 import axios from 'axios';
+
 import { refreshAccessToken } from '../../services/_auth.service';
 import { AxiosRequestConfigWithRetry } from '../../../utils/constants/dataShapes';
-import { query } from './axiosInstance';
+import { axiosInstance } from './axiosInstance';
 
-const { newAccessToken } = refreshAccessToken();
+const query = axiosInstance;
 
 // intercepting the request before it is sent to add the access token and content type
 query.interceptors.request.use(
@@ -30,7 +31,7 @@ query.interceptors.response.use(
       if (!originalRequest) return Promise.reject(error);
 
       const status = error.response?.status;
-      const message = error?.response?.data?.message || error.message || '';
+      const message = error?.response?.data?.error || error?.message || '';
 
       if (status === 401) {
         // cast to custom interface to include _retry
@@ -40,6 +41,7 @@ query.interceptors.response.use(
         // try retrying if not already retried
         if (originalRequest && !originalRequest._retry) {
           originalRequest._retry = true;
+          const { newAccessToken } = refreshAccessToken();
 
           const newToken = await newAccessToken();
 
@@ -81,4 +83,4 @@ query.interceptors.response.use(
   }
 );
 
-export default query;
+export { query };
