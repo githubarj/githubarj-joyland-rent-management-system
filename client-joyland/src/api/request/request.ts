@@ -1,7 +1,9 @@
 import { showNotification } from '@mantine/notifications';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { refreshAccessToken } from '../services/_auth.service';
 import { AxiosRequestConfigWithRetry } from '../../utils/constants/dataShapes';
+
+const {newAccessToken} = refreshAccessToken()
 
 const query = axios.create({
   baseURL: 'http://localhost:3000/',
@@ -42,7 +44,7 @@ query.interceptors.response.use(
         if (originalRequest && !originalRequest._retry) {
           originalRequest._retry = true;
 
-          const newToken = await refreshAccessToken();
+          const newToken = await newAccessToken();
 
           if (newToken) {
             originalRequest.headers = originalRequest.headers || {};
