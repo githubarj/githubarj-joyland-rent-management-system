@@ -18,6 +18,7 @@ import { Outlet } from 'react-router-dom';
 import { FaArrowUpLong } from 'react-icons/fa6';
 import { fetchCurrentUser } from '../api/services/_auth.service';
 import { useLoadingStore } from '../store/useLoadingStore';
+import { showNotification } from '@mantine/notifications';
 
 const AppLayout: React.FC = () => {
   const [open, { toggle }] = useDisclosure();

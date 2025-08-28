@@ -112,4 +112,27 @@ const refreshAccessToken = (): {
   };
 };
 
-export { register, refreshAccessToken, login, verifyEmail, fetchCurrentUser };
+const logout = async (data: {
+  refresh?: string;
+}): Promise<ApiResponse | null> => {
+  setLoading('logout', true);
+  try {
+    const response = await query.post(authEndpoints.logout, data);
+    localStorage.removeItem('access_token');
+    return response.data;
+  } catch (error) {
+    console.error('Logout Error', error);
+    return null;
+  } finally {
+    setLoading('logout', false);
+  }
+};
+
+export {
+  register,
+  refreshAccessToken,
+  login,
+  verifyEmail,
+  fetchCurrentUser,
+  logout,
+};
