@@ -1,14 +1,10 @@
 import { showNotification } from '@mantine/notifications';
 import axios from 'axios';
-import { refreshAccessToken } from '../services/_auth.service';
-import { AxiosRequestConfigWithRetry } from '../../utils/constants/dataShapes';
+import { refreshAccessToken } from '../../services/_auth.service';
+import { AxiosRequestConfigWithRetry } from '../../../utils/constants/dataShapes';
+import { query } from './axiosInstance';
 
-const {newAccessToken} = refreshAccessToken()
-
-const query = axios.create({
-  baseURL: 'http://localhost:3000/',
-  timeout: 10000,
-});
+const { newAccessToken } = refreshAccessToken();
 
 // intercepting the request before it is sent to add the access token and content type
 query.interceptors.request.use(
@@ -38,6 +34,7 @@ query.interceptors.response.use(
 
       if (status === 401) {
         // cast to custom interface to include _retry
+
         const originalRequest = error.config as AxiosRequestConfigWithRetry;
 
         // try retrying if not already retried
@@ -62,6 +59,12 @@ query.interceptors.response.use(
       } else if (status == 500) {
         showNotification({
           title: 'Server Error detected!',
+          message: message,
+          color: 'red',
+        });
+      } else if (status == 404) {
+        showNotification({
+          title: 'Request not found',
           message: message,
           color: 'red',
         });

@@ -8,6 +8,6 @@ export const authEndpoints = {
   verifyEmail: '',
   changePassword: '/change_password/',
 
-  // temp 
-  refreshAccessToken: '/refresh'
+  // temp
+  refreshAccessToken: '/token/refresh/',
 };

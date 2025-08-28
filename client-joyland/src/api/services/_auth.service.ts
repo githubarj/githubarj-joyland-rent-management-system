@@ -1,8 +1,29 @@
-import query from '../request/request';
 import { CanceledError } from 'axios';
 import { authEndpoints } from '../request/endpoints/auth.endpoints';
+import { ApiResponse } from '../../utils/constants/dataShapes';
+import { query } from '../request/axios/axiosInstance';
+import { useLoadingStore } from '../../store/useLoadingStore';
 
-export const refreshAccessToken = (): {
+const { setLoading } = useLoadingStore.getState();
+
+const register = async (data: {
+  email: string;
+  full_name: string;
+  password: string;
+}): Promise<ApiResponse | null> => {
+  setLoading('register', true);
+  try {
+    const response = await query.post(authEndpoints.register, data);
+    return response.data;
+  } catch (error) {
+    console.error('Registration error:', error);
+    return null;
+  } finally {
+    setLoading('register', false);
+  }
+};
+
+const refreshAccessToken = (): {
   newAccessToken: () => Promise<string | null>;
   cancel: () => void;
 } => {
@@ -36,3 +57,5 @@ export const refreshAccessToken = (): {
     cancel: () => controller.abort(),
   };
 };
+
+export { register, refreshAccessToken };

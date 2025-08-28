@@ -15,7 +15,6 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core';
-import { InvoiceService } from '../../../api/services/_auth.service';
 import { invoices } from '../../../utils/constants/dataShapes';
 import invoicingStyles from '../invoicingStyles.module.scss';
 import CustomPagination from './Pagination';
@@ -30,16 +29,7 @@ const InvoiceTable: React.FC = () => {
   const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
   const { goTo } = useCustomNavigation();
 
-  useEffect(() => {
-    fetchInvoices();
-  }, []);
-
-  const fetchInvoices = () => {
-    InvoiceService.getInvoices()
-      .then((res) => tableBody(res.data))
-      .then((data) => setDataSource(data))
-      .catch((err) => console.log(err));
-  };
+ 
 
   const tableHeaders: string[] = [
     '#',
