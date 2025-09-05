@@ -16,8 +16,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from users.permissions import IsAuthenticatedAndActive
-
+from .permissions import IsAuthenticatedAndActive
+from .utils import api_response
 
 # Create your views here.
 class RegisterView(APIView):
@@ -28,17 +28,36 @@ class RegisterView(APIView):
         request_body=RegisterSerializer,
         tags=['Auth'], 
         responses={
-            201: openapi.Response(description="User registered successfully. Verification email sent"),
-            400: openapi.Response(description="Validation failed or user already exists.")
+            201: openapi.Response(
+                description="User registered successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User registered successfully",
+                        "data": None
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Validation failed",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {
+                            "email": ["This field must be unique."]
+                        }
+                    }
+                }
+            )
         }
     )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "User registered successfully"},  status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            return api_response(True, "User registered successfully", data=None, status=status.HTTP_201_CREATED )
+        return api_response(False, "Validation error", data=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmailView(APIView):
     @swagger_auto_schema(
@@ -63,16 +82,16 @@ class VerifyEmailView(APIView):
             user = get_object_or_404(User, pk=uuid)
 
             if not default_token_generator.check_token(user, token):
-                return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
-            
+                return api_response(False, "Invalid or expired token", None, status.HTTP_400_BAD_REQUEST)
+
             if not user.email_verified_at:
                 user.email_verified_at = now()
                 user.save()
 
-            return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)
+            return api_response(True, "Email verified successfully", None, status.HTTP_200_OK)
         
         except Exception as e:
-            return Response({"error":str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(False, "Invalid or expired token", None, status.HTTP_400_BAD_REQUEST)
 
 class ResendVerificationView(APIView):
     @swagger_auto_schema(
@@ -152,8 +171,9 @@ class PasswordResetView(APIView):
         serializer = PasswordResetSerializer(data = request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Password Reset link sent"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(True, "Password Reset link sent",None, status=status.HTTP_200_OK)
+        
+        return api_response(True, f"Error: {serializer.errors}",None, status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
@@ -200,8 +220,9 @@ class PasswordResetConfirmView(APIView):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Password reset successful"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(True,"Password reset successful",None,status.HTTP_200_OK)
+
+        return api_response(False, f"Errors:{serializer.errors}", None, status.HTTP_400_BAD_REQUEST)
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
@@ -216,23 +237,36 @@ class LoginView(TokenObtainPairView):
                 description="JWT access and refresh tokens",
                 examples={
                     "application/json": {
-                        "access": "<ACCESS_TOKEN>",
-                        "refresh": "<REFRESH_TOKEN>"
+                        "success": True,
+                        "message": "Login successful",
+                        "data": {
+                            "access": "<ACCESS_TOKEN>",
+                            "refresh": "<REFRESH_TOKEN>"
+                        }
                     }
                 }
             ),
             400: openapi.Response(
                 description="Invalid credentials",
-                examples={"application/json": {"non_field_errors": ["Invalid email or password"]}}
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Invalid email or password",
+                        "data": None
+                    }
+                }
             ),
             403: openapi.Response(
                 description="Email not verified",
                 examples={
                     "application/json": {
-                        "error": "Email not verified. Please verify your email first.",
-                        "code": "email_not_verified",
-                        "email": "user@example.com",
-                        "resend_endpoint": "/resend-verification/"
+                        "success": False,
+                        "message": "Email not verified. Please verify your email first.",
+                        "data": {
+                            "code": "email_not_verified",
+                            "email": "user@example.com",
+                            "resend_endpoint": "/resend-verification/"
+                        }
                     }
                 }
             ),
@@ -240,8 +274,11 @@ class LoginView(TokenObtainPairView):
                 description="User Inactive",
                 examples={
                     "application/json": {
-                        "error": "Your account is disabled. Please contact support",
-                        "code": "account_disabled",
+                        "success": False,
+                        "message": "Your account is disabled. Please contact support.",
+                        "data": {
+                            "code": "account_disabled"
+                        }
                     }
                 }
             ),
@@ -255,30 +292,24 @@ class LoginView(TokenObtainPairView):
         user = serializer.validated_data['user']
 
         if not user.email_verified_at:
-            return Response(
-                {
-                    "error": "Email not verified. Please verify your email first.",
-                    "code": "email_not_verified",
-                    "email": user.email,                
-                    "resend_endpoint": "/resend-verification/"
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return api_response(False, "Email not verified. Please verify your email first.", {
+                "code": "email_not_verified",
+                "email": user.email,
+                "resend_endpoint": "/resend-verification/"
+            }, status.HTTP_403_FORBIDDEN)
         
         # Respect admin suspensions
         if not user.is_active:
-            return Response(
-                {"error": "Your account is disabled. Please contact support.", "code": "account_disabled"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return api_response(False, "Your account is disabled. Please contact support.", {
+                    "code": "account_disabled"
+                }, status.HTTP_403_FORBIDDEN)
 
         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            "refresh":str(refresh),
-            "access":str(refresh.access_token)            
-        }, status=status.HTTP_200_OK)
-
+        return api_response(True, "Login successful", {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token)
+            }, status.HTTP_200_OK)
 
 class LogoutView(APIView):
      
@@ -301,17 +332,17 @@ class LogoutView(APIView):
         try:
             refresh_token = request.data.get("refresh")
             if not refresh_token:
-                return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+                return api_response(False, "Refresh token is required", None, status.HTTP_400_BAD_REQUEST)
 
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-            return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+            return api_response(True, "Logout successful", None, status.HTTP_205_RESET_CONTENT)
 
         except TokenError as e:
-            return Response({"error": f"Token error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(False, f"Token error: {str(e)}", None, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": f"{str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(False, f"Error: {str(e)}", None, status.HTTP_400_BAD_REQUEST)
 
 class UserMeView(APIView):
     
@@ -321,13 +352,28 @@ class UserMeView(APIView):
     @swagger_auto_schema(
         operation_summary="Get Authenticated User Details",
         operation_description="Returns authenticated user's details including roles.",
-        responses={200: UserDetailSerializer()},
+        responses={
+            200: openapi.Response(
+                description="User details",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User details fetched successfully",
+                        "data": {
+                            "id": 1,
+                            "email": "tenant@example.com",
+                            "roles": ["tenant"]
+                        }
+                    }
+                }
+            )
+        },
         security=[{"Bearer": []}]
     )
 
     def get(self, request):
         serializer =  UserDetailSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return api_response(True, "User details fetched successfully", serializer.data, status.HTTP_200_OK)
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticatedAndActive]
@@ -337,9 +383,36 @@ class ChangePasswordView(APIView):
         operation_summary="Change user password",
         request_body=ChangePasswordSerializer,
         responses={
-            200: openapi.Response(description="Password changed successfully"),
-            400: openapi.Response(description="Validation error"),
-            401: openapi.Response(description="Authentication credentials were not provided"),
+            200: openapi.Response(
+                description="Password changed successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Password changed successfully",
+                        "data": None
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {"old_password": ["Old password is incorrect"]}
+                    }
+                }
+            ),
+            401: openapi.Response(
+                description="Authentication required",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Authentication credentials were not provided.",
+                        "data": None
+                    }
+                }
+            ),
         },
         tags=['Auth'], 
     )
@@ -350,10 +423,11 @@ class ChangePasswordView(APIView):
 
         if serializer.is_valid():
             if not user.check_password(serializer.validated_data['old_password']):
-                return Response({"error":"Old password is incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+                return api_response(False, "Old password is incorrect", None, status.HTTP_400_BAD_REQUEST)
             
             user.set_password(serializer.validated_data['new_password'])
             user.save()
-            return Response({"message":"Password changed Successfuly"}, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(True, "Password changed successfully", None, status.HTTP_200_OK)
+
+        return api_response(False, f"Error: {serializer.errors}", None, status.HTTP_400_BAD_REQUEST)
+
