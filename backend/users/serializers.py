@@ -10,7 +10,6 @@ from django.utils.encoding import force_bytes
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
@@ -54,7 +53,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
         return user   
-
          
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="Enter your email")

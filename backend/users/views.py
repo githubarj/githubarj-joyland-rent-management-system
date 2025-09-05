@@ -241,7 +241,13 @@ class LoginView(TokenObtainPairView):
                         "message": "Login successful",
                         "data": {
                             "access": "<ACCESS_TOKEN>",
-                            "refresh": "<REFRESH_TOKEN>"
+                            "refresh": "<REFRESH_TOKEN>",
+                            "user": {
+                                "id": 1,
+                                "email": "tenant@example.com",
+                                "full_name": "John Doe",
+                                "roles": ["tenant"]
+                            }
                         }
                     }
                 }
@@ -292,23 +298,33 @@ class LoginView(TokenObtainPairView):
         user = serializer.validated_data['user']
 
         if not user.email_verified_at:
-            return api_response(False, "Email not verified. Please verify your email first.", {
+            return api_response(False, 
+                "Email not verified. Please verify your email first.", 
+                {
                 "code": "email_not_verified",
                 "email": user.email,
                 "resend_endpoint": "/resend-verification/"
-            }, status.HTTP_403_FORBIDDEN)
+                }, 
+                status.HTTP_403_FORBIDDEN)
         
         # Respect admin suspensions
         if not user.is_active:
-            return api_response(False, "Your account is disabled. Please contact support.", {
+            return api_response(False, 
+                    "Your account is disabled. Please contact support.", 
+                    {
                     "code": "account_disabled"
-                }, status.HTTP_403_FORBIDDEN)
+                }, 
+                status.HTTP_403_FORBIDDEN)
 
         refresh = RefreshToken.for_user(user)
 
+        # ✅ Serialize user info
+        user_data = UserDetailSerializer(user).data
+
         return api_response(True, "Login successful", {
                 "refresh": str(refresh),
-                "access": str(refresh.access_token)
+                "access": str(refresh.access_token),
+                "user": user_data
             }, status.HTTP_200_OK)
 
 class LogoutView(APIView):
