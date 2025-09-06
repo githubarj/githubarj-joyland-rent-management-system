@@ -245,9 +245,11 @@ class LoginView(TokenObtainPairView):
                             "user": {
                                 "id": 1,
                                 "email": "tenant@example.com",
-                                "full_name": "John Doe",
+                                "surname": "Doe",
+                                "other_name": "Jane",
+                                "phone": "+254700000000",
                                 "roles": ["tenant"]
-                            }
+                            }   
                         }
                     }
                 }

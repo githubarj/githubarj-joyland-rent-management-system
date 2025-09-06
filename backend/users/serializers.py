@@ -19,7 +19,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = User
-        fields = ("email","full_name", "password", "is_tenant", "is_landlord")
+        fields = ("email", "password","surname","other_name","phone", "is_tenant", "is_landlord")
         extra_kwargs = {
             "password": {"write_only": True}
         }
@@ -70,16 +70,23 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'roles', 'date_joined', 'is_active']
+        fields = ['id', 
+            'email', 
+            'roles',
+            'surname',
+            'other_name',
+            'phone',
+            'date_joined', 
+            'is_active']
     
     def get_roles(self, obj):
         roles = []
         if obj.is_admin:
-            roles.append("admin")
+            roles.append("Admin")
         if obj.is_tenant:
-            roles.append("tenant")
-        if obj.is_landlord:
-            roles.append("landlord")
+            roles.append("Tenant")
+        if obj.is_manager:
+            roles.append("Manager")
         return roles
 
 class ChangePasswordSerializer(serializers.Serializer):
