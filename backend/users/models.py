@@ -5,7 +5,7 @@ from django.db import models
 
 class UserManager(BaseUserManager):
     """Custom manager to handle soft deletes and case-insensitive email lookup"""
-    def get_queryset():
+    def get_queryset(self):
         # Exclude soft-deleted users by default
         return super().get_queryset().filter(deleted_at__isnull=True)
     
