@@ -247,7 +247,7 @@ class RolePermission(models.Model):
 
 class UserPermission(models.Model):
     """Overrides at user level (can be global or property-scoped)"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_permissions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="custom_permissions")
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="user_assignment")
     # property = models.ForeignKey("properties.Property", null=True, blank=True,
     #                              on_delete=models.CASCADE, related_name="user_permissions")

@@ -1,5 +1,5 @@
 from django.conf import settings
-from .models import User
+from .models import User, TenantProfile, ManagerProfile,LandlordProfile, LandlordPayoutMethod,PropertyManager, Permission, RolePermission, UserPermission
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -10,6 +10,7 @@ from django.utils.encoding import force_bytes
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+# ----------------- Auth -----------------
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
@@ -179,4 +180,65 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         self.user.set_password(self.validated_data["new_password"])
         self.user.save()
         return self.user
+
+# ----------------- USERS -----------------
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = fields = (
+            "id", "email", "surname", "other_names", "phone",
+            "is_tenant", "is_manager", "is_active",
+            "email_verified_at", "created_at", "updated_at"
+        )
+
+# ----------------- TENANT PROFILES -----------------
+class TenantProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenantProfile
+        fields = "__all__"
+
+    def validate_user(self, value):
+        if not value.is_tenant:
+            raise serializers.ValidationError("User must be a tenant to have TenantProfile")
+        
+# ----------------- MANAGER PROFILES -----------------
+class ManagerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ManagerProfile
+        fields = "__all__"
+    
+    def validate(self, value):
+        if not value.is_manager:
+            return serializers.ValidationError("User must be a tenant to have ManagerProfile")
+
+class LandlordProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LandlordProfile
+        fields = "__all__"
+
+class LandlordPayoutMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LandlordPayoutMethod
+        fields = "__all__"
+
+class PropertyMangeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyManager
+        fields = "__all__"
+
+# ----------------- PERMISSIONS -----------------
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = "__all__"
+
+class RolePermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RolePermission
+        fields = "__all__"
+    
+class UserPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPermission
+        fields = "__all__"
 
