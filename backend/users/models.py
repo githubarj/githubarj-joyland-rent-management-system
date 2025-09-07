@@ -1,10 +1,19 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
 from django.conf import settings
+from django.forms import ValidationError
 from django.utils import timezone
 
 User = settings.AUTH_USER_MODEL
 
+ROLE_CHOICES = [
+    ("landlord", "Landlord"),
+    ("property_manager", "Property Manager"),
+    ("accountant", "Accountant"),
+    ("caretaker", "Caretaker"),
+    ("agent", "Agent"),
+    ("tenant", "Tenant"),  # ✅ added tenant role
+]
 class UserManager(BaseUserManager):
     """Custom manager to handle soft deletes and case-insensitive email lookup"""
     def get_queryset(self):
@@ -87,21 +96,40 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"self.email ({"Tenant" if self.is_tenant else "Manager" if self.is_manager else "User"})"
 
 class ManagerProfile(models.Model):
-    ROLE_CHOICES = [
-        ("landlord", "Landlord"),
-        ("property_manager", "Property Manager"),
-        ("accountant", "Accountant"),
-        ("caretaker", "Caretaker"),
-        ("agent", "Agent"),
-    ]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name="manager_profile")
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        if not self.user.is_manager:
+            raise ValidationError("User must have is_manager=True to create a ManagerProfile")
+    
     def __str__(self):
         return f"{self.user.email} ({self.role})"
+
+class TenantProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tenant_profile")
+    national_id = models.CharField(max_length=100, blank=True, null=True)
+    employer_name = models.CharField(max_length=255, blank=True, null=True)
+    emergency_contact_name = models.CharField(max_length=255, blank=True, null=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.save()
+
+    def clean(self):
+        if not self.user.is_tenant:
+            raise ValidationError("User must have is_tenant=True to create a TenantProfile")
+        
+    def __str__(self):
+        return f"TenantProfile for {self.user.email}"
 
 class LandlordProfile(models.Model):
     manager = models.OneToOneField(ManagerProfile, on_delete=models.CASCADE, related_name="landlord_profile")
@@ -208,7 +236,7 @@ class Permission(models.Model):
 
 class RolePermission(models.Model):
     """Default permissions granted to roles (from ManagerProfile.role)""" 
-    role = models.CharField(max_length=50,)
+    role = models.CharField(max_length=50, choices=ROLE_CHOICES)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="role_assignements")
 
     class Meta:
@@ -224,8 +252,8 @@ class UserPermission(models.Model):
     # property = models.ForeignKey("properties.Property", null=True, blank=True,
     #                              on_delete=models.CASCADE, related_name="user_permissions")
     
-    class Meta:
-        unique_together = ("user", "permission", "property")
+    # class Meta:
+    #     unique_together = ("user", "permission", "property")
     
     def __str__(self):
         scope = f" for {self.property}" if self.property else " (global)"
