@@ -1,7 +1,9 @@
-from datetime import timezone
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 
+User = settings.AUTH_USER_MODEL
 
 class UserManager(BaseUserManager):
     """Custom manager to handle soft deletes and case-insensitive email lookup"""
@@ -26,7 +28,6 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
         return self.create_user(email, password, **extra_fields)
-
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
@@ -85,3 +86,149 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"self.email ({"Tenant" if self.is_tenant else "Manager" if self.is_manager else "User"})"
 
+class ManagerProfile(models.Model):
+    ROLE_CHOICES = [
+        ("landlord", "Landlord"),
+        ("property_manager", "Property Manager"),
+        ("accountant", "Accountant"),
+        ("caretaker", "Caretaker"),
+        ("agent", "Agent"),
+    ]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name="manager_profile")
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.email} ({self.role})"
+
+class LandlordProfile(models.Model):
+    manager = models.OneToOneField(ManagerProfile, on_delete=models.CASCADE, related_name="landlord_profile")
+    company_name = models.CharField(max_length=255, blank=True, null=True)
+    kra_pin = models.CharField(max_length=50, blank=True, null=True)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.save()
+    
+    def restore(self):
+        """Restore a soft-deleted user"""
+        self.is_deleted_at = None
+        self.save()
+
+    def __str__(self):
+        return f"LandlordProfile for {self.manager.user.email}"
+
+class LandlordPayoutMethod(models.Model):
+    METHOD_CHOICES = [
+        ("BANK", "Bank"),
+        ("MPESA", "M-PESA"),
+        ("OTHER", "Other"),
+    ]
+
+    landlord = models.ForeignKey(LandlordProfile, on_delete=models.CASCADE, related_name="payout_methods")
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES)
+
+    # Bank fields
+    bank_name = models.CharField(max_length=255, blank=True, null=True)
+    bank_account_name = models.CharField(max_length=255, blank=True, null=True)
+    bank_account_number = models.CharField(max_length=50, blank=True, null=True)
+
+    # M-Pesa fields
+    mpesa_paybill = models.CharField(max_length=50, blank=True, null=True)
+    mpesa_till = models.CharField(max_length=50, blank=True, null=True)
+
+    is_default = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["landlord", "is_default"], condition=models.Q(is_default=True),
+                                    name="unique_default_payout_per_landlord")
+        ]
+
+    def __str__(self):
+        return f"{self.method} payout for {self.landlord.manager.user.email}"
+
+class PropertyManager(models.Model):
+    ROLE_CHOICES = [
+        ("MANAGER", "Manager"),
+        ("ACCOUNTANT", "Accountant"),
+        ("VIEWER", "Viewer"),
+    ]
+    # property = models.ForeignKey("properties.Property", on_delete=models.CASCADE, related_name="managers")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="managed_properties")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    invited_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
+                                   related_name="invitations_sent")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        # constraints = [
+        #     models.UniqueConstraint(fields=["property", "user"], name="unique_property_user")
+        # ]
+        indexes = [
+            models.Index(fields=["user"], name="idx_property_manager_user")
+        ]
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.is_active = False
+        self.save()
+    
+    def restore(self):
+        """Restore a soft-deleted user"""
+        self.is_deleted_at = None
+        self.save()
+    
+    def __str__(self):
+        return f"{self.user.email} ({self.role}) for {self.property}"
+
+class Permission(models.Model):
+    """Atomic capability, e.g. 'can_view_users', 'can_manage_invoices'"""
+    code = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.code
+
+class RolePermission(models.Model):
+    """Default permissions granted to roles (from ManagerProfile.role)""" 
+    role = models.CharField(max_length=50,)
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="role_assignements")
+
+    class Meta:
+        unique_together = ("role", "permission")
+
+    def __str__(self):
+        return f"{self.role} → {self.permission.code}"
+
+class UserPermission(models.Model):
+    """Overrides at user level (can be global or property-scoped)"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_permissions")
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="user_assignment")
+    # property = models.ForeignKey("properties.Property", null=True, blank=True,
+    #                              on_delete=models.CASCADE, related_name="user_permissions")
+    
+    class Meta:
+        unique_together = ("user", "permission", "property")
+    
+    def __str__(self):
+        scope = f" for {self.property}" if self.property else " (global)"
+        return f"{self.user.email} → {self.permission.code}{scope}" 
+
+    
