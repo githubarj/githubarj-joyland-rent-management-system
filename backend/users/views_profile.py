@@ -1,0 +1,798 @@
+from django.conf import settings
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import viewsets
+from .serializers import (RegisterSerializer, UserSerializer, TenantProfileSerializer, ManagerProfileSerializer,
+    LandlordProfileSerializer, LandlordPayoutMethodSerializer, PropertyManagerSerializer)
+from .models import  (
+    User, TenantProfile, ManagerProfile,
+    LandlordProfile, LandlordPayoutMethod,
+    PropertyManager)
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from .permissions import IsAuthenticatedAndActive
+from .utils import api_response
+
+# ----------------- USERS -----------------
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        tags=["Users"],
+        operation_summary="List all users",
+        responses={
+            200: openapi.api_response(
+                description="List of all users",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Users fetched",
+                        "data": [
+                            {
+                                "id": 1,
+                                "email": "tenant@example.com",
+                                "surname": "Doe",
+                                "other_name": "Jane",
+                                "phone": "+254700000000",
+                                "roles": ["tenant"]
+                            },
+                            {
+                                "id": 2,
+                                "email": "manager@example.com",
+                                "surname": "Smith",
+                                "other_name": "John",
+                                "phone": "+254711111111",
+                                "roles": ["manager"]
+                            }
+                        ]
+                    }
+                }
+            ),
+            401: openapi.api_response(
+                description="Unauthorized - user not authenticated",
+                examples={
+                    "application/json": {
+                        "detail": "Authentication credentials were not provided."
+                    }
+                }
+            )
+        }
+    )
+    def list(self, request, *args,**kwargs):
+        response = super().list(request,*args, **kwargs)
+        return api_response(True, "Users fetched",response.data,status.HTTP_200_OK)
+    
+    @swagger_auto_schema(tags=["Users"], 
+                         operation_summary="Create user",
+                         request_body=RegisterSerializer,
+
+                        responses={
+                            201: openapi.api_response(
+                                description="User created successfully",
+                                examples={
+                                    "application/json": {
+                                        "success": True,
+                                        "message": "User created successfully",
+                                        "data": None
+                                    }
+                                }
+                            ),
+                            400: openapi.api_response(
+                                description="Validation failed",
+                                examples={
+                                    "application/json": {
+                                        "success": False,
+                                        "message": "Validation error",
+                                        "data": {
+                                            "email": ["This field must be unique."]
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True,"User profile created",response.data,status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Users"],
+        operation_summary="Update user profile",
+        request_body=UserSerializer,  # 👈 expects UserSerializer fields
+        responses={
+            200: openapi.api_response(
+                description="User updated successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User profile updated",
+                        "data": {
+                            "id": 1,
+                            "email": "tenant@example.com",
+                            "surname": "Doe",
+                            "other_names": "Jane",
+                            "phone": "+254700000000",
+                            "roles": ["tenant"]
+                        }
+                    }
+                }
+            ),
+            400: openapi.api_response(
+                description="Validation failed",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {
+                            "email": ["This field must be unique."]
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "User profile updated", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Users"],
+        operation_summary="Disable user (soft delete)",
+        responses={
+            200: openapi.api_response(
+                description="User disabled successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User disabled",
+                        "data": None
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete()   # call your custom soft delete
+        return api_response(True, "User disabled", None,status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        method="post",
+        tags=["Users"],
+        operation_summary="Restore a disabled (soft-deleted) user",
+        responses={
+            200: openapi.api_response(
+                description="User restored successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User restored",
+                        "data": {
+                            "id": 1,
+                            "email": "tenant@example.com",
+                            "surname": "Doe",
+                            "other_names": "Jane",
+                            "phone": "+254700000000",
+                            "roles": ["tenant"],
+                            "is_active": True
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore_user(self, request, pk=None):
+        """Restore a soft-deleted user"""
+        try:
+            instance = self.get_object()
+            instance.restore()
+            serializer = self.get_serializer(instance)
+            return api_response(
+                True,"User restored", serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return api_response(
+                 False, "User not found", None,
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+# ----------------- Tenants -----------------
+class TenantProfileViewSet(viewsets.ModelViewSet):
+    queryset = TenantProfile.objects.all()
+    serializer_class = TenantProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(tags=["Tenant Profiles"], operation_summary="List all tenant profiles",
+                         responses={
+            200: openapi.api_response(
+                description="List of all tenants",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Tenants fetched",
+                        "data": [
+                            {
+                                "id": 1,
+                                "national_id": "7388874",
+                                "employername": "Asila Asila",
+                                "emergency_contact_name": "Jane",
+                                "emergency_contact_phone": "+254700000000",
+                                "user": ["id", "phone"]
+                            },
+                        ]
+                    }
+                }
+            ),
+            401: openapi.api_response(
+                description="Unauthorized - user not authenticated",
+                examples={
+                    "application/json": {
+                        "detail": "Authentication credentials were not provided."
+                    }
+                }
+            )
+        })
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Tenant profiles fetched",response.data,status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Tenant Profiles"],
+        operation_summary="Create tenant profile",
+        request_body=TenantProfileSerializer,
+        responses={
+            201: openapi.api_response(
+                description="Tenant profile created successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Tenant profile created",
+                        "data": {
+                            "id": 1,
+                            "user": 5,
+                            "national_id": "12345678",
+                            "employer_name": "Acme Corp",
+                            "emergency_contact_name": "John Doe",
+                            "emergency_contact_phone": "+254700000000"
+                        }
+                    }
+                }
+            ),
+            400: openapi.api_response(
+                description="Validation failed",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {
+                            "user": ["User must be a tenant to have TenantProfile"]
+                        }
+                    }
+                }
+            ),
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response( True,"Tenant profile created",response.data,status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Tenant Profiles"],
+        operation_summary="Update tenant profile",
+        request_body=TenantProfileSerializer,
+        responses={
+            200: openapi.api_response(
+                description="Tenant profile updated successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Tenant profile updated",
+                        "data": {
+                            "id": 1,
+                            "user": 5,
+                            "national_id": "12345678",
+                            "employer_name": "Acme Corp",
+                            "emergency_contact_name": "Jane Doe",
+                            "emergency_contact_phone": "+254711111111"
+                        }
+                    }
+                }
+            ),
+            400: openapi.api_response(
+                description="Validation failed",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {
+                            "user": ["User must be a tenant to have TenantProfile"]
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="Tenant profile not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Tenant profile not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "Tenant profile updated", response.data,status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Tenant Profiles"],
+        operation_summary="Delete tenant profile (soft delete)",
+        responses={
+            200: openapi.api_response(
+                description="Tenant profile deleted successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Tenant profile deleted",
+                        "data": None
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="Tenant profile not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Tenant profile not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete()   # ✅ calls model’s soft_delete instead of hard delete
+        return api_response(True,"Tenant profile deleted", None, status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        method="post",
+        tags=["Tenant Profiles"],
+        operation_summary="Restore a deleted tenant profile",
+        responses={
+            200: openapi.api_response(
+                description="Tenant profile restored successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Tenant profile restored",
+                        "data": {
+                            "id": 1,
+                            "user": 5,
+                            "national_id": "12345678",
+                            "employer_name": "Acme Corp",
+                            "emergency_contact_name": "Jane Doe",
+                            "emergency_contact_phone": "+254711111111"
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="Tenant profile not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Tenant profile not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore_profile(self, request, pk=None):
+        """Restore a soft-deleted tenant profile"""
+        try:
+            instance = self.get_object()
+            instance.restore()
+            serializer = self.get_serializer(instance)
+            return api_response(
+                 True, "Tenant profile restored", serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except TenantProfile.DoesNotExist:
+            return api_response(
+                 False, "Tenant profile not found", None,status=status.HTTP_404_NOT_FOUND
+            )
+
+# ----------------- MANAGER PROFILES -----------------
+class ManagerProfileViewSet(viewsets.ModelViewSet):
+    queryset = ManagerProfile.objects.all()
+    serializer_class = ManagerProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(tags=["Manager Profiles"], operation_summary="List all manager profiles")
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Manager profiles fetched",response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Manager Profiles"],
+        operation_summary="Create a manager profile",
+        request_body=ManagerProfileSerializer,
+        responses={
+            201: openapi.api_response(
+                description="Manager profile created successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Manager profile created",
+                        "data": {
+                            "id": 1,
+                            "user": 2,
+                            "role": "landlord"
+                        }
+                    }
+                }
+            ),
+            400: openapi.api_response(
+                description="Validation failed",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {"user": ["User must have is_manager=True"]}
+                    }
+                }
+            )
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True, "Manager profile created", response.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Manager Profiles"],
+        operation_summary="Update a manager profile",
+        request_body=ManagerProfileSerializer,
+        responses={
+            200: openapi.api_response(
+                description="Manager profile updated",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Manager profile updated",
+                        "data": {
+                            "id": 1,
+                            "user": 2,
+                            "role": "accountant"
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="Profile not found",
+                examples={
+                    "application/json": {"success": False, "message": "Manager profile not found", "data": None}
+                }
+            ),
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "Manager profile updated",response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Manager Profiles"],
+        operation_summary="Delete (soft delete) manager profile",
+        responses={
+            200: openapi.api_response(
+                description="Manager profile deleted",
+                examples={"application/json": {"success": True, "message": "Manager profile deleted", "data": None}}
+            ),
+            404: openapi.api_response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "Manager profile not found", "data": None}}
+            ),
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete() if hasattr(instance, "soft_delete") else instance.delete()
+        return api_response(True,"Manager profile deleted",None, status.HTTP_200_OK)
+
+class LandlordProfileViewSet(viewsets.ModelViewSet):
+    queryset = LandlordProfile.objects.all()
+    serializer_class = LandlordProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(tags=["Landlord Profiles"], operation_summary="List all landlord profiles")
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Landlord profiles fetched", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Landlord Profiles"],
+        operation_summary="Create a landlord profile",
+        request_body=LandlordProfileSerializer,
+        responses={
+            201: openapi.api_response(description="Landlord profile created", examples={
+                "application/json": {"success": True, "message": "Landlord profile created", "data": {"id": 1, "manager": 2, "company_name":"xyz", "kra_pin":"AIEN3774546728", "contact_phone":"07845840302"}}
+            }),
+            400: openapi.api_response(description="Validation error", examples={
+                "application/json": {"success": False, "message": "Validation error", "data": {"manager": ["This field is required."]}}
+            })
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True,"Landlord profile created",response.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Landlord Profiles"],
+        operation_summary="Update landlord profile",
+        request_body=LandlordProfileSerializer,
+        responses={
+            200: openapi.api_response(description="Landlord profile updated", examples={
+                "application/json": {"success": True, "message": "Landlord profile updated", "data": {"id": 1, "manager": 2, "company_name":"xyz", "kra_pin":"AIEN3774546728", "contact_phone":"07845840302"}}
+            }),
+            404: openapi.api_response(description="Not found", examples={
+                "application/json": {"success": False, "message": "Landlord profile not found", "data": None}
+            })
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True,"Landlord profile updated",response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Landlord Profiles"],
+        operation_summary="Delete landlord profile (soft delete)",
+        responses={
+            200: openapi.api_response(description="Landlord profile deleted", examples={
+                "application/json": {"success": True, "message": "Landlord profile deleted", "data": None}
+            }),
+            404: openapi.api_response(description="Not found", examples={
+                "application/json": {"success": False, "message": "Landlord profile not found", "data": None}
+            })
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete() if hasattr(instance, "soft_delete") else instance.delete()
+        return api_response({"success": True, "message": "Landlord profile deleted", "data": None})
+    
+    @swagger_auto_schema(
+        method="post",
+        tags=["Landlord Profiles"],
+        operation_summary="Restore a disabled (soft-deleted) Landlord",
+        responses={
+            200: openapi.api_response(
+                description="Landlord restored successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Landlord restored",
+                        "data": {
+                            "id": 1,
+                            "is_active": True
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="Landlord not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Landlord not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore_user(self, request, pk=None):
+        """Restore a soft-deleted user"""
+        try:
+            instance = self.get_object()
+            instance.restore()
+            serializer = self.get_serializer(instance)
+            return api_response(
+                True,"Landlord restored", serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except LandlordProfile.DoesNotExist:
+            return api_response(
+                False, "Landlord not found", None,
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):
+    queryset = LandlordPayoutMethod.objects.all()
+    serializer_class = LandlordPayoutMethodSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(tags=["Landlord Payout Methods"], operation_summary="List payout methods")
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Payout methods fetched",response.data,status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Create a payout method",
+        request_body=LandlordPayoutMethodSerializer,
+        responses={
+            201: openapi.api_response(description="Payout method created", examples={
+                "application/json": {"success": True, "message": "Payout method created", "data": {"id": 1, "landlord": 2, "method": "BANK"}}
+            })
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True,"Payout method created",response.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Update payout method",
+        request_body=LandlordPayoutMethodSerializer,
+        responses={
+            200: openapi.api_response(description="Payout method updated", examples={
+                "application/json": {"success": True, "message": "Payout method updated", "data": {"id": 1, "landlord": 2, "method": "MPESA"}}
+            })
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True,"Payout method updated", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Delete payout method",
+        responses={
+            200: openapi.api_response(description="Payout method deleted", examples={
+                "application/json": {"success": True, "message": "Payout method deleted", "data": None}
+            })
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return api_response(True,"Payout method deleted", None, status.HTTP_200_OK)
+    
+class PropertyManagerViewSet(viewsets.ModelViewSet):
+    queryset = PropertyManager.objects.all()
+    serializer_class = PropertyManagerSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(tags=["Property Managers"], operation_summary="List property manager assignments")
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Property managers fetched",response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Property Managers"],
+        operation_summary="Assign a property manager",
+        request_body=PropertyManagerSerializer,
+        responses={
+            201: openapi.api_response(description="Assignment created", examples={
+                "application/json": {"success": True, "message": "Property manager assigned", "data": {"id": 1, "user": 3, "role": "MANAGER", "invited_by":2}}
+            })
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True,"Property manager assigned", response.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Property Managers"],
+        operation_summary="Update property manager assignment",
+        request_body=PropertyManagerSerializer,
+        responses={
+            200: openapi.api_response(description="Assignment updated", examples={
+                "application/json": {"success": True, "message": "Property manager updated", "data": {"id": 1, "user": 3, "role": "ACCOUNTANT", "invited_by":2}}
+            })
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True,"Property manager updated",response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Property Managers"],
+        operation_summary="Remove property manager (soft delete)",
+        responses={
+            200: openapi.api_response(description="Assignment removed", examples={
+                "application/json": {"success": True, "message": "Property manager removed", "data": None}
+            })
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete() if hasattr(instance, "soft_delete") else instance.delete()
+        return api_response(True,"Property manager removed", None, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        method="post",
+        tags=["Property Managers"],
+        operation_summary="Restore a disabled (soft-deleted) Property Manager",
+        responses={
+            200: openapi.api_response(
+                description="Property Manager restored successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Property Manager restored",
+                        "data": {
+                            "id": 1,
+                            "is_active": True
+                        }
+                    }
+                }
+            ),
+            404: openapi.api_response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore_user(self, request, pk=None):
+        """Restore a soft-deleted user"""
+        try:
+            instance = self.get_object()
+            instance.restore()
+            serializer = self.get_serializer(instance)
+            return api_response(
+                True,"Property Manager restored", serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except PropertyManager.DoesNotExist:
+            return api_response(
+                 False, "Property Manager not found", None,
+                status=status.HTTP_404_NOT_FOUND
+            )
