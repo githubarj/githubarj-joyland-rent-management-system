@@ -14,11 +14,43 @@ ROLE_CHOICES = [
     ("agent", "Agent"),
     ("tenant", "Tenant"),  # ✅ added tenant role
 ]
+
+class SoftDeleteManager(models.Manager):
+    """Default manager excludes soft-deleted records"""
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class SoftDeleteModel(models.Model):
+    """Abstract base class for soft delete functionality"""
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    # Managers
+    objects = SoftDeleteManager()     # active only
+    all_objects = models.Manager()    # everything (including soft deleted)
+
+    class Meta:
+        abstract = True
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.is_active = False
+        self.save()
+
+    def restore(self):
+        self.deleted_at = None
+        self.is_active = True
+        self.save()
+
+    def delete(self, using=None, keep_parents=False):
+        """Override delete() to always perform soft delete"""
+        self.soft_delete()
 class UserManager(BaseUserManager):
     """Custom manager to handle soft deletes and case-insensitive email lookup"""
-    def get_queryset(self):
-        # Exclude soft-deleted users by default
-        return super().get_queryset().filter(deleted_at__isnull=True)
+    # def get_queryset(self):
+    #     # Exclude soft-deleted users by default
+    #     return super().get_queryset().filter(deleted_at__isnull=True)
     
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -38,16 +70,14 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser must have is_staff=True.")
         return self.create_user(email, password, **extra_fields)
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel ):
     email = models.EmailField(unique=True)
     surname = models.CharField(max_length=100)
     other_names = models.CharField(max_length=100, blank=True,null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-
     # Roles
+    is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     is_manager = models.BooleanField(default=False, db_index=True)
     is_tenant = models.BooleanField(default=False, db_index=True)
@@ -55,10 +85,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_verified_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["full_name"]
+    REQUIRED_FIELDS = ["surname","phone"]
 
     objects = UserManager()
 
@@ -80,20 +109,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             models.Index(fields=["email"], name="idx_users_email") #explicit email index
         ]
 
-    def soft_delete(self):
-        """"Mark a user as deleted instead of removing from DB"""
-        self.is_deleted_at = timezone.now()
-        self.is_active = False
-        self.save()
-    
-    def restore(self):
-        """Restore a soft-deleted user"""
-        self.is_deleted_at = None
-        self.is_active = True
-        self.save()
-
     def __str__(self):
-        return f"self.email ({"Tenant" if self.is_tenant else "Manager" if self.is_manager else "User"})"
+        role = "Tenant" if self.is_tenant else "Manager" if self.is_manager else "User"
+        return f"{self.email} ({role})"
 
 class ManagerProfile(models.Model):
 
@@ -109,7 +127,7 @@ class ManagerProfile(models.Model):
     def __str__(self):
         return f"{self.user.email} ({self.role})"
 
-class TenantProfile(models.Model):
+class TenantProfile(SoftDeleteModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tenant_profile")
     national_id = models.CharField(max_length=100, blank=True, null=True)
     employer_name = models.CharField(max_length=255, blank=True, null=True)
@@ -118,11 +136,6 @@ class TenantProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-
-    def soft_delete(self):
-        self.deleted_at = timezone.now()
-        self.save()
 
     def clean(self):
         if not self.user.is_tenant:
@@ -131,7 +144,7 @@ class TenantProfile(models.Model):
     def __str__(self):
         return f"TenantProfile for {self.user.email}"
 
-class LandlordProfile(models.Model):
+class LandlordProfile(SoftDeleteModel):
     manager = models.OneToOneField(ManagerProfile, on_delete=models.CASCADE, related_name="landlord_profile")
     company_name = models.CharField(max_length=255, blank=True, null=True)
     kra_pin = models.CharField(max_length=50, blank=True, null=True)
@@ -139,16 +152,6 @@ class LandlordProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-
-    def soft_delete(self):
-        self.deleted_at = timezone.now()
-        self.save()
-    
-    def restore(self):
-        """Restore a soft-deleted user"""
-        self.is_deleted_at = None
-        self.save()
 
     def __str__(self):
         return f"LandlordProfile for {self.manager.user.email}"
@@ -186,7 +189,7 @@ class LandlordPayoutMethod(models.Model):
     def __str__(self):
         return f"{self.method} payout for {self.landlord.manager.user.email}"
 
-class PropertyManager(models.Model):
+class PropertyManager(SoftDeleteModel):
     ROLE_CHOICES = [
         ("MANAGER", "Manager"),
         ("ACCOUNTANT", "Accountant"),
@@ -197,10 +200,10 @@ class PropertyManager(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     invited_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
                                    related_name="invitations_sent")
-    is_active = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
+
 
     class Meta:
         # constraints = [
@@ -209,19 +212,10 @@ class PropertyManager(models.Model):
         indexes = [
             models.Index(fields=["user"], name="idx_property_manager_user")
         ]
-
-    def soft_delete(self):
-        self.deleted_at = timezone.now()
-        self.is_active = False
-        self.save()
-    
-    def restore(self):
-        """Restore a soft-deleted user"""
-        self.is_deleted_at = None
-        self.save()
     
     def __str__(self):
-        return f"{self.user.email} ({self.role}) for {self.property}"
+        return f"{self.user.email} ({self.role})"
+        # return f"{self.user.email} ({self.role}) for {self.property}"
 
 class Permission(models.Model):
     """Atomic capability, e.g. 'can_view_users', 'can_manage_invoices'"""

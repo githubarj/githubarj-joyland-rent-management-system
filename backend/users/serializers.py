@@ -221,7 +221,7 @@ class LandlordPayoutMethodSerializer(serializers.ModelSerializer):
         model = LandlordPayoutMethod
         fields = "__all__"
 
-class PropertyMangeSerializer(serializers.ModelSerializer):
+class PropertyManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyManager
         fields = "__all__"

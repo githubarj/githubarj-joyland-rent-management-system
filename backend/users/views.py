@@ -5,12 +5,19 @@ from django.utils.encoding import force_bytes
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.utils.timezone import now
+from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer, PasswordResetConfirmSerializer, PasswordResetSerializer
-from .models import User
+from .serializers import (ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer, PasswordResetConfirmSerializer, PasswordResetSerializer,
+    UserSerializer, TenantProfileSerializer, ManagerProfileSerializer,
+    LandlordProfileSerializer, LandlordPayoutMethodSerializer, PropertyManagerSerializer, PermissionSerializer, RolePermissionSerializer, UserPermissionSerializer)
+from .models import  (
+    User, TenantProfile, ManagerProfile,
+    LandlordProfile, LandlordPayoutMethod,
+    PropertyManager, Permission, RolePermission, UserPermission)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -19,7 +26,7 @@ from drf_yasg import openapi
 from .permissions import IsAuthenticatedAndActive
 from .utils import api_response
 
-# Create your views here.
+# ----------------- AUTH -----------------
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -449,3 +456,219 @@ class ChangePasswordView(APIView):
 
         return api_response(False, f"Error: {serializer.errors}", None, status.HTTP_400_BAD_REQUEST)
 
+# ----------------- USERS -----------------
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        tags=["Users"],
+        operation_summary="List all users",
+        responses={
+            200: openapi.Response(
+                description="List of all users",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Users fetched",
+                        "data": [
+                            {
+                                "id": 1,
+                                "email": "tenant@example.com",
+                                "surname": "Doe",
+                                "other_name": "Jane",
+                                "phone": "+254700000000",
+                                "roles": ["tenant"]
+                            },
+                            {
+                                "id": 2,
+                                "email": "manager@example.com",
+                                "surname": "Smith",
+                                "other_name": "John",
+                                "phone": "+254711111111",
+                                "roles": ["manager"]
+                            }
+                        ]
+                    }
+                }
+            ),
+            401: openapi.Response(
+                description="Unauthorized - user not authenticated",
+                examples={
+                    "application/json": {
+                        "detail": "Authentication credentials were not provided."
+                    }
+                }
+            )
+        }
+    )
+    def list(self, request, *args,**kwargs):
+        response = super().list(request,*args, **kwargs)
+        return api_response(True, "Users fetched",response.data,status.HTTP_200_OK)
+    
+    @swagger_auto_schema(tags=["Users"], 
+                         operation_summary="Create user",
+                         request_body=RegisterSerializer,
+
+                        responses={
+                            201: openapi.Response(
+                                description="User created successfully",
+                                examples={
+                                    "application/json": {
+                                        "success": True,
+                                        "message": "User created successfully",
+                                        "data": None
+                                    }
+                                }
+                            ),
+                            400: openapi.Response(
+                                description="Validation failed",
+                                examples={
+                                    "application/json": {
+                                        "success": False,
+                                        "message": "Validation error",
+                                        "data": {
+                                            "email": ["This field must be unique."]
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True,"User profile created",response.data,status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Users"],
+        operation_summary="Update user profile",
+        request_body=UserSerializer,  # 👈 expects UserSerializer fields
+        responses={
+            200: openapi.Response(
+                description="User updated successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User profile updated",
+                        "data": {
+                            "id": 1,
+                            "email": "tenant@example.com",
+                            "surname": "Doe",
+                            "other_names": "Jane",
+                            "phone": "+254700000000",
+                            "roles": ["tenant"]
+                        }
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Validation failed",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "Validation error",
+                        "data": {
+                            "email": ["This field must be unique."]
+                        }
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "User profile updated", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Users"],
+        operation_summary="Disable user (soft delete)",
+        responses={
+            200: openapi.Response(
+                description="User disabled successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User disabled",
+                        "data": None
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete()   # call your custom soft delete
+        return api_response(True, "User disabled", None,status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        method="post",
+        tags=["Users"],
+        operation_summary="Restore a disabled (soft-deleted) user",
+        responses={
+            200: openapi.Response(
+                description="User restored successfully",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "User restored",
+                        "data": {
+                            "id": 1,
+                            "email": "tenant@example.com",
+                            "surname": "Doe",
+                            "other_names": "Jane",
+                            "phone": "+254700000000",
+                            "roles": ["tenant"],
+                            "is_active": True
+                        }
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="User not found",
+                examples={
+                    "application/json": {
+                        "success": False,
+                        "message": "User not found",
+                        "data": None
+                    }
+                }
+            ),
+        }
+    )
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore_user(self, request, pk=None):
+        """Restore a soft-deleted user"""
+        try:
+            instance = self.get_object()
+            instance.restore()
+            serializer = self.get_serializer(instance)
+            return Response(
+                {"success": True, "message": "User restored", "data": serializer.data},
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return Response(
+                {"success": False, "message": "User not found", "data": None},
+                status=status.HTTP_404_NOT_FOUND
+            )
