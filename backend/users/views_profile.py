@@ -1,4 +1,3 @@
-from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -20,8 +19,34 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        tags=["Users"],
+    @swagger_auto_schema(tags=["Users"],
+        operation_summary="Get a user",
+        responses={
+            200: openapi.Response(
+                description="User fetched",
+                examples={"application/json": {
+                    "success": True, "message": "User fetched",
+                    "data": {
+                        "id": 1, "email": "tenant@example.com",
+                        "surname": "Doe", "other_names": "Jane",
+                        "phone": "+254700000000",
+                        "is_tenant": True, "is_manager": False
+                    }
+                }}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "User not found", "data": None}}
+            ),
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return api_response( True, "User fetched", serializer.data, status.HTTP_200_OK)
+
+
+    @swagger_auto_schema(tags=["Users"],
         operation_summary="List all users",
         responses={
             200: openapi.api_response(
@@ -66,40 +91,38 @@ class UserViewSet(viewsets.ModelViewSet):
         return api_response(True, "Users fetched",response.data,status.HTTP_200_OK)
     
     @swagger_auto_schema(tags=["Users"], 
-                         operation_summary="Create user",
-                         request_body=RegisterSerializer,
-
-                        responses={
-                            201: openapi.api_response(
-                                description="User created successfully",
-                                examples={
-                                    "application/json": {
-                                        "success": True,
-                                        "message": "User created successfully",
-                                        "data": None
-                                    }
-                                }
-                            ),
-                            400: openapi.api_response(
-                                description="Validation failed",
-                                examples={
-                                    "application/json": {
-                                        "success": False,
-                                        "message": "Validation error",
-                                        "data": {
-                                            "email": ["This field must be unique."]
-                                        }
-                                    }
-                                }
-                            )
+            operation_summary="Create user",
+            request_body=RegisterSerializer,
+            responses={
+                201: openapi.api_response(
+                    description="User created successfully",
+                    examples={
+                        "application/json": {
+                            "success": True,
+                            "message": "User created successfully",
+                            "data": None
                         }
-                    )
+                    }
+                ),
+                400: openapi.api_response(
+                    description="Validation failed",
+                    examples={
+                        "application/json": {
+                            "success": False,
+                            "message": "Validation error",
+                            "data": {
+                                "email": ["This field must be unique."]
+                            }
+                        }
+                    }
+                )
+            }
+        )
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         return api_response(True,"User profile created",response.data,status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(
-        tags=["Users"],
+    @swagger_auto_schema(tags=["Users"],
         operation_summary="Update user profile",
         request_body=UserSerializer,  # 👈 expects UserSerializer fields
         responses={
@@ -148,8 +171,7 @@ class UserViewSet(viewsets.ModelViewSet):
         response = super().update(request, *args, **kwargs)
         return api_response(True, "User profile updated", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        tags=["Users"],
+    @swagger_auto_schema(tags=["Users"],
         operation_summary="Disable user (soft delete)",
         responses={
             200: openapi.api_response(
@@ -179,9 +201,8 @@ class UserViewSet(viewsets.ModelViewSet):
         instance.soft_delete()   # call your custom soft delete
         return api_response(True, "User disabled", None,status.HTTP_200_OK)
 
-    @swagger_auto_schema(
+    @swagger_auto_schema(tags=["Users"],
         method="post",
-        tags=["Users"],
         operation_summary="Restore a disabled (soft-deleted) user",
         responses={
             200: openapi.api_response(
@@ -237,8 +258,35 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     serializer_class = TenantProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(tags=["Tenant Profiles"], operation_summary="List all tenant profiles",
-                         responses={
+    @swagger_auto_schema(tags=["Tenant Profiles"],
+        operation_summary="Get a tenant profile",
+        responses={
+            200: openapi.Response(
+                description="Tenant profile fetched",
+                examples={"application/json": {
+                    "success": True, "message": "Tenant profile fetched",
+                    "data": {
+                        "id": 1, "user": 5, "national_id": "12345678",
+                        "employer_name": "Acme Corp",
+                        "emergency_contact_name": "Jane Doe",
+                        "emergency_contact_phone": "+254711111111"
+                    }
+                }}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "Tenant profile not found", "data": None}}
+            ),
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return api_response(True,"Tenant profile fetched",serializer.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(tags=["Tenant Profiles"], 
+        operation_summary="List all tenant profiles",
+        responses={
             200: openapi.api_response(
                 description="List of all tenants",
                 examples={
@@ -266,13 +314,13 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             )
-        })
+        }
+    )
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         return api_response(True, "Tenant profiles fetched",response.data,status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        tags=["Tenant Profiles"],
+    @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="Create tenant profile",
         request_body=TenantProfileSerializer,
         responses={
@@ -311,8 +359,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         return api_response( True,"Tenant profile created",response.data,status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(
-        tags=["Tenant Profiles"],
+    @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="Update tenant profile",
         request_body=TenantProfileSerializer,
         responses={
@@ -361,8 +408,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         response = super().update(request, *args, **kwargs)
         return api_response(True, "Tenant profile updated", response.data,status.HTTP_200_OK)
 
-    @swagger_auto_schema(
-        tags=["Tenant Profiles"],
+    @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="Delete tenant profile (soft delete)",
         responses={
             200: openapi.api_response(
@@ -392,9 +438,8 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         instance.soft_delete()   # ✅ calls model’s soft_delete instead of hard delete
         return api_response(True,"Tenant profile deleted", None, status.HTTP_200_OK)
     
-    @swagger_auto_schema(
+    @swagger_auto_schema(tags=["Tenant Profiles"],
         method="post",
-        tags=["Tenant Profiles"],
         operation_summary="Restore a deleted tenant profile",
         responses={
             200: openapi.api_response(
@@ -452,6 +497,28 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         return api_response(True, "Manager profiles fetched",response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Manager Profiles"],
+        operation_summary="Get a manager profile",
+        responses={
+            200: openapi.Response(
+                description="Manager profile fetched",
+                examples={"application/json": {
+                    "success": True, "message": "Manager profile fetched",
+                    "data": {"id": 1, "user": 2, "role": "landlord"}
+                }}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "Manager profile not found", "data": None}}
+            ),
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(True, "Manager profile fetched",serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         tags=["Manager Profiles"],
@@ -542,6 +609,29 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
     queryset = LandlordProfile.objects.all()
     serializer_class = LandlordProfileSerializer
     permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        tags=["Landlord Profiles"],
+        operation_summary="Get a landlord profile",
+        responses={
+            200: openapi.Response(
+                description="Landlord profile fetched",
+                examples={"application/json": {
+                    "success": True, "message": "Landlord profile fetched",
+                    "data": {"id": 1, "manager": 2, "company_name": "Acme Ltd", "kra_pin":"AD83475844","contact_phone":"0717357908"}
+                }}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "Landlord profile not found", "data": None}}
+            ),
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return api_response(True, "Landlord profile fetched",serializer.data, status.HTTP_200_OK)
+
 
     @swagger_auto_schema(tags=["Landlord Profiles"], operation_summary="List all landlord profiles")
     def list(self, request, *args, **kwargs):
@@ -646,62 +736,33 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):
-    queryset = LandlordPayoutMethod.objects.all()
-    serializer_class = LandlordPayoutMethodSerializer
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(tags=["Landlord Payout Methods"], operation_summary="List payout methods")
-    def list(self, request, *args, **kwargs):
-        response = super().list(request, *args, **kwargs)
-        return api_response(True, "Payout methods fetched",response.data,status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        tags=["Landlord Payout Methods"],
-        operation_summary="Create a payout method",
-        request_body=LandlordPayoutMethodSerializer,
-        responses={
-            201: openapi.api_response(description="Payout method created", examples={
-                "application/json": {"success": True, "message": "Payout method created", "data": {"id": 1, "landlord": 2, "method": "BANK"}}
-            })
-        }
-    )
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        return api_response(True,"Payout method created",response.data, status=status.HTTP_201_CREATED)
-
-    @swagger_auto_schema(
-        tags=["Landlord Payout Methods"],
-        operation_summary="Update payout method",
-        request_body=LandlordPayoutMethodSerializer,
-        responses={
-            200: openapi.api_response(description="Payout method updated", examples={
-                "application/json": {"success": True, "message": "Payout method updated", "data": {"id": 1, "landlord": 2, "method": "MPESA"}}
-            })
-        }
-    )
-    def update(self, request, *args, **kwargs):
-        response = super().update(request, *args, **kwargs)
-        return api_response(True,"Payout method updated", response.data, status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        tags=["Landlord Payout Methods"],
-        operation_summary="Delete payout method",
-        responses={
-            200: openapi.api_response(description="Payout method deleted", examples={
-                "application/json": {"success": True, "message": "Payout method deleted", "data": None}
-            })
-        }
-    )
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.delete()
-        return api_response(True,"Payout method deleted", None, status.HTTP_200_OK)
-    
 class PropertyManagerViewSet(viewsets.ModelViewSet):
     queryset = PropertyManager.objects.all()
     serializer_class = PropertyManagerSerializer
     permission_classes = [IsAuthenticated]
+
+
+    @swagger_auto_schema(
+        tags=["Property Managers"],
+        operation_summary="Get a property manager assignment",
+        responses={
+            200: openapi.Response(
+                description="Property manager fetched",
+                examples={"application/json": {
+                    "success": True, "message": "Property manager fetched",
+                    "data": {"id": 1, "user": 3, "role": "MANAGER"}
+                }}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "Property manager not found", "data": None}}
+            ),
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(True, "Property manager fetched", serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Property Managers"], operation_summary="List property manager assignments")
     def list(self, request, *args, **kwargs):
@@ -796,3 +857,80 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
                  False, "Property Manager not found", None,
                 status=status.HTTP_404_NOT_FOUND
             )
+
+# ----------------- LandLord Pay Methods -----------------
+class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):
+    queryset = LandlordPayoutMethod.objects.all()
+    serializer_class = LandlordPayoutMethodSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Get a payout method",
+        responses={
+            200: openapi.Response(
+                description="Payout method fetched",
+                examples={"application/json": {
+                    "success": True, "message": "Payout method fetched",
+                    "data": {"id": 1, "landlord": 2, "method": "BANK"}
+                }}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={"application/json": {"success": False, "message": "Payout method not found", "data": None}}
+            ),
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return api_response(True,"Payout method fetched", serializer.data, status.HTTP_200_OK)
+
+
+    @swagger_auto_schema(tags=["Landlord Payout Methods"], operation_summary="List payout methods")
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Payout methods fetched",response.data,status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Create a payout method",
+        request_body=LandlordPayoutMethodSerializer,
+        responses={
+            201: openapi.api_response(description="Payout method created", examples={
+                "application/json": {"success": True, "message": "Payout method created", "data": {"id": 1, "landlord": 2, "method": "BANK"}}
+            })
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return api_response(True,"Payout method created",response.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Update payout method",
+        request_body=LandlordPayoutMethodSerializer,
+        responses={
+            200: openapi.api_response(description="Payout method updated", examples={
+                "application/json": {"success": True, "message": "Payout method updated", "data": {"id": 1, "landlord": 2, "method": "MPESA"}}
+            })
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return api_response(True,"Payout method updated", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        tags=["Landlord Payout Methods"],
+        operation_summary="Delete payout method",
+        responses={
+            200: openapi.api_response(description="Payout method deleted", examples={
+                "application/json": {"success": True, "message": "Payout method deleted", "data": None}
+            })
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return api_response(True,"Payout method deleted", None, status.HTTP_200_OK)
+    

@@ -12,8 +12,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import (ChangePasswordSerializer, RegisterSerializer, LoginSerializer, UserDetailSerializer, PasswordResetConfirmSerializer, PasswordResetSerializer)
-from .models import  (
-    User, Permission, RolePermission, UserPermission)
+from .models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
