@@ -170,7 +170,6 @@ class PermissionViewSet(viewsets.ModelViewSet):
         instance.delete()
         return api_response({"success": True, "message": "Permission deleted", "data": None})
 
-
 class RolePermissionViewSet(viewsets.ModelViewSet):
     queryset = RolePermission.objects.all()
     serializer_class = RolePermissionSerializer
@@ -316,7 +315,6 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance.delete()
         return api_response(True, "Role permission deleted", None, status.HTTP_200_OK)
-
 
 class UserPermissionViewSet(viewsets.ModelViewSet):
     queryset = UserPermission.objects.all()
