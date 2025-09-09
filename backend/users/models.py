@@ -250,7 +250,8 @@ class UserPermission(models.Model):
     #     unique_together = ("user", "permission", "property")
     
     def __str__(self):
-        scope = f" for {self.property}" if self.property else " (global)"
-        return f"{self.user.email} → {self.permission.code}{scope}" 
+        # scope = f" for {self.property}" if self.property else " (global)"
+        # return f"{self.user.email} → {self.permission.code}{scope}" 
+        return f"{self.user.email} → {self.permission.code}" 
 
     

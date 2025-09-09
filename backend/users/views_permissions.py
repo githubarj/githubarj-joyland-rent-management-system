@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from .serializers import (PermissionSerializer, RolePermissionSerializer, UserPermissionSerializer)
 from .models import  (Permission, RolePermission, UserPermission)
@@ -15,18 +15,17 @@ class PermissionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-    @swagger_auto_schema(
-        tags=["Permissions"],
+    @swagger_auto_schema(tags=["Permissions"],
         operation_summary="Get a permission",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Permission fetched",
                 examples={"application/json": {
                     "success": True, "message": "Permission fetched",
                     "data": {"id": 1, "code": "can_view_property", "description": "Can view properties"}
                 }}
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Not found",
                 examples={"application/json": {"success": False, "message": "Permission not found", "data": None}}
             ),
@@ -35,12 +34,12 @@ class PermissionViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        return api_response({"success": True, "message": "Permission fetched", "data": serializer.data})
+        return api_response(True, "Permission fetched",serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Permissions"], 
         operation_summary="List permissions",
         responses={
-        200: openapi.api_response(
+        200: openapi.Response(
             description="List Permissions",
             examples={"application/json": {
                 "success": True, "message": "Permissions fetched",
@@ -48,7 +47,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
                          {"id": 2, "code": "can_edit_property", "description": "Can edit properties"}]
             }}
         ),
-        401: openapi.api_response(
+        401: openapi.Response(
                 description="Unauthorized - user not authenticated",
                 examples={
                     "application/json": {
@@ -60,13 +59,13 @@ class PermissionViewSet(viewsets.ModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        return api_response({"success": True, "message": "Permissions fetched", "data": response.data})
+        return api_response(True,"Permissions fetched", response.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Permissions"], 
         operation_summary="Create permission", 
         request_body=PermissionSerializer,
         responses={
-                201: openapi.api_response(
+                201: openapi.Response(
                     description="Permission created successfully",
                     examples={
                         "application/json": {
@@ -76,7 +75,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
                         }
                     }
                 ),
-                400: openapi.api_response(
+                400: openapi.Response(
                     description="Validation failed",
                     examples={
                         "application/json": {
@@ -98,7 +97,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
         operation_summary="Update permission", 
         request_body=PermissionSerializer,
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Permission updated successfully",
                 examples={
                     "application/json": {
@@ -112,7 +111,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            400: openapi.api_response(
+            400: openapi.Response(
                 description="Validation failed",
                 examples={
                     "application/json": {
@@ -124,7 +123,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User not found",
                 examples={
                     "application/json": {
@@ -138,12 +137,12 @@ class PermissionViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
-        return api_response({"success": True, "message": "Permission updated", "data": response.data})
+        return api_response( True, "Permission updated", response.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Permissions"], 
         operation_summary="Delete permission",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Permission deleted successfully",
                 examples={
                     "application/json": {
@@ -153,7 +152,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Permission not found",
                 examples={
                     "application/json": {
@@ -168,7 +167,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.delete()
-        return api_response({"success": True, "message": "Permission deleted", "data": None})
+        return api_response(True, "Permission deleted",  None, status.HTTP_200_OK)
 
 class RolePermissionViewSet(viewsets.ModelViewSet):
     queryset = RolePermission.objects.all()
@@ -179,14 +178,14 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         tags=["Role Permissions"],
         operation_summary="Get a role permission mapping",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Role permission fetched",
                 examples={"application/json": {
                     "success": True, "message": "Role permission fetched",
                     "data": {"id": 1, "role": "property_manager", "permission": 5}
                 }}
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Not found",
                 examples={"application/json": {"success": False, "message": "Role permission not found", "data": None}}
             ),
@@ -195,12 +194,12 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        return api_response({"success": True, "message": "Role permission fetched", "data": serializer.data})
+        return api_response(True, "Role permission fetched", serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Role Permissions"], 
         operation_summary="List role permissions",
         responses={
-        200: openapi.api_response(
+        200: openapi.Response(
             description="List Role Permission",
             examples={"application/json": {
                 "success": True, "message": "Role Permission fetched",
@@ -208,7 +207,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
                          {"id": 2, "role": "viewer", "description": "Can view properties"}]
             }}
         ),
-        401: openapi.api_response(
+        401: openapi.Response(
                 description="Unauthorized - user not authenticated",
                 examples={
                     "application/json": {
@@ -226,7 +225,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         operation_summary="Create role permission", 
         request_body=RolePermissionSerializer,
         responses={
-                201: openapi.api_response(
+                201: openapi.Response(
                     description="Role Permission created successfully",
                     examples={
                         "application/json": {
@@ -236,7 +235,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
                         }
                     }
                 ),
-                400: openapi.api_response(
+                400: openapi.Response(
                     description="Validation failed",
                     examples={
                         "application/json": {
@@ -250,13 +249,13 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         )
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return api_response({"success": True, "message": "Role permission created", "data": response.data}, status=status.HTTP_201_CREATED)
+        return api_response(True, "Role permission created", response.data, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(tags=["Role Permissions"], 
         operation_summary="Update role permission", 
         request_body=RolePermissionSerializer,
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Permission updated successfully",
                 examples={
                     "application/json": {
@@ -270,7 +269,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Role Permission not found",
                 examples={
                     "application/json": {
@@ -289,7 +288,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["Role Permissions"], 
         operation_summary="Delete role permission",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Role permission deleted successfully",
                 examples={
                     "application/json": {
@@ -299,7 +298,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Role permission not found",
                 examples={
                     "application/json": {
@@ -346,7 +345,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["User Permissions"], 
         operation_summary="List user permissions",
         responses={
-        200: openapi.api_response(
+        200: openapi.Response(
             description="List User Permission",
             examples={"application/json": {
                 "success": True, "message": "User specific Permission fetched",
@@ -354,7 +353,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
                          {"id": 2, "role": "2", "description": "Can edit properties"}]
             }}
         ),
-        401: openapi.api_response(
+        401: openapi.Response(
                 description="Unauthorized - user not authenticated",
                 examples={
                     "application/json": {
@@ -372,7 +371,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
         operation_summary="Create user permission", 
         request_body=UserPermissionSerializer,
         responses={
-            201: openapi.api_response(
+            201: openapi.Response(
                 description="User Permission created successfully",
                 examples={
                     "application/json": {
@@ -382,7 +381,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            400: openapi.api_response(
+            400: openapi.Response(
                 description="Validation failed",
                 examples={
                     "application/json": {
@@ -402,7 +401,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
         operation_summary="Update user permission", 
         request_body=UserPermissionSerializer,
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Permission updated successfully",
                 examples={
                     "application/json": {
@@ -416,7 +415,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User Permission not found",
                 examples={
                     "application/json": {
@@ -435,7 +434,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["User Permissions"], 
         operation_summary="Delete user permission",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="User permission deleted successfully",
                 examples={
                     "application/json": {
@@ -445,7 +444,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User permission not found",
                 examples={
                     "application/json": {

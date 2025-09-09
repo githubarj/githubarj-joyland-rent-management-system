@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from .serializers import (RegisterSerializer, UserSerializer, TenantProfileSerializer, ManagerProfileSerializer,
     LandlordProfileSerializer, LandlordPayoutMethodSerializer, PropertyManagerSerializer)
@@ -49,7 +49,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["Users"],
         operation_summary="List all users",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="List of all users",
                 examples={
                     "application/json": {
@@ -76,7 +76,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            401: openapi.api_response(
+            401: openapi.Response(
                 description="Unauthorized - user not authenticated",
                 examples={
                     "application/json": {
@@ -94,7 +94,7 @@ class UserViewSet(viewsets.ModelViewSet):
             operation_summary="Create user",
             request_body=RegisterSerializer,
             responses={
-                201: openapi.api_response(
+                201: openapi.Response(
                     description="User created successfully",
                     examples={
                         "application/json": {
@@ -104,7 +104,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         }
                     }
                 ),
-                400: openapi.api_response(
+                400: openapi.Response(
                     description="Validation failed",
                     examples={
                         "application/json": {
@@ -126,7 +126,7 @@ class UserViewSet(viewsets.ModelViewSet):
         operation_summary="Update user profile",
         request_body=UserSerializer,  # 👈 expects UserSerializer fields
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="User updated successfully",
                 examples={
                     "application/json": {
@@ -143,7 +143,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            400: openapi.api_response(
+            400: openapi.Response(
                 description="Validation failed",
                 examples={
                     "application/json": {
@@ -155,7 +155,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User not found",
                 examples={
                     "application/json": {
@@ -174,7 +174,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["Users"],
         operation_summary="Disable user (soft delete)",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="User disabled successfully",
                 examples={
                     "application/json": {
@@ -184,7 +184,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User not found",
                 examples={
                     "application/json": {
@@ -205,7 +205,7 @@ class UserViewSet(viewsets.ModelViewSet):
         method="post",
         operation_summary="Restore a disabled (soft-deleted) user",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="User restored successfully",
                 examples={
                     "application/json": {
@@ -223,7 +223,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User not found",
                 examples={
                     "application/json": {
@@ -244,12 +244,12 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance)
             return api_response(
                 True,"User restored", serializer.data,
-                status=status.HTTP_200_OK
+                status.HTTP_200_OK
             )
         except User.DoesNotExist:
             return api_response(
                  False, "User not found", None,
-                status=status.HTTP_404_NOT_FOUND
+                status.HTTP_404_NOT_FOUND
             )
 
 # ----------------- Tenants -----------------
@@ -287,7 +287,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["Tenant Profiles"], 
         operation_summary="List all tenant profiles",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="List of all tenants",
                 examples={
                     "application/json": {
@@ -306,7 +306,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            401: openapi.api_response(
+            401: openapi.Response(
                 description="Unauthorized - user not authenticated",
                 examples={
                     "application/json": {
@@ -324,7 +324,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         operation_summary="Create tenant profile",
         request_body=TenantProfileSerializer,
         responses={
-            201: openapi.api_response(
+            201: openapi.Response(
                 description="Tenant profile created successfully",
                 examples={
                     "application/json": {
@@ -341,7 +341,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            400: openapi.api_response(
+            400: openapi.Response(
                 description="Validation failed",
                 examples={
                     "application/json": {
@@ -363,7 +363,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         operation_summary="Update tenant profile",
         request_body=TenantProfileSerializer,
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Tenant profile updated successfully",
                 examples={
                     "application/json": {
@@ -380,7 +380,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            400: openapi.api_response(
+            400: openapi.Response(
                 description="Validation failed",
                 examples={
                     "application/json": {
@@ -392,7 +392,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Tenant profile not found",
                 examples={
                     "application/json": {
@@ -411,7 +411,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="Delete tenant profile (soft delete)",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Tenant profile deleted successfully",
                 examples={
                     "application/json": {
@@ -421,7 +421,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Tenant profile not found",
                 examples={
                     "application/json": {
@@ -442,7 +442,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         method="post",
         operation_summary="Restore a deleted tenant profile",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Tenant profile restored successfully",
                 examples={
                     "application/json": {
@@ -459,7 +459,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Tenant profile not found",
                 examples={
                     "application/json": {
@@ -480,11 +480,11 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance)
             return api_response(
                  True, "Tenant profile restored", serializer.data,
-                status=status.HTTP_200_OK
+                status.HTTP_200_OK
             )
         except TenantProfile.DoesNotExist:
             return api_response(
-                 False, "Tenant profile not found", None,status=status.HTTP_404_NOT_FOUND
+                 False, "Tenant profile not found", None,status.HTTP_404_NOT_FOUND
             )
 
 # ----------------- MANAGER PROFILES -----------------
@@ -525,7 +525,7 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
         operation_summary="Create a manager profile",
         request_body=ManagerProfileSerializer,
         responses={
-            201: openapi.api_response(
+            201: openapi.Response(
                 description="Manager profile created successfully",
                 examples={
                     "application/json": {
@@ -539,7 +539,7 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            400: openapi.api_response(
+            400: openapi.Response(
                 description="Validation failed",
                 examples={
                     "application/json": {
@@ -553,14 +553,14 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return api_response(True, "Manager profile created", response.data, status=status.HTTP_201_CREATED)
+        return api_response(True, "Manager profile created", response.data, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         tags=["Manager Profiles"],
         operation_summary="Update a manager profile",
         request_body=ManagerProfileSerializer,
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Manager profile updated",
                 examples={
                     "application/json": {
@@ -574,7 +574,7 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Profile not found",
                 examples={
                     "application/json": {"success": False, "message": "Manager profile not found", "data": None}
@@ -590,11 +590,11 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
         tags=["Manager Profiles"],
         operation_summary="Delete (soft delete) manager profile",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Manager profile deleted",
                 examples={"application/json": {"success": True, "message": "Manager profile deleted", "data": None}}
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Not found",
                 examples={"application/json": {"success": False, "message": "Manager profile not found", "data": None}}
             ),
@@ -643,27 +643,27 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
         operation_summary="Create a landlord profile",
         request_body=LandlordProfileSerializer,
         responses={
-            201: openapi.api_response(description="Landlord profile created", examples={
+            201: openapi.Response(description="Landlord profile created", examples={
                 "application/json": {"success": True, "message": "Landlord profile created", "data": {"id": 1, "manager": 2, "company_name":"xyz", "kra_pin":"AIEN3774546728", "contact_phone":"07845840302"}}
             }),
-            400: openapi.api_response(description="Validation error", examples={
+            400: openapi.Response(description="Validation error", examples={
                 "application/json": {"success": False, "message": "Validation error", "data": {"manager": ["This field is required."]}}
             })
         }
     )
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return api_response(True,"Landlord profile created",response.data, status=status.HTTP_201_CREATED)
+        return api_response(True,"Landlord profile created",response.data, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         tags=["Landlord Profiles"],
         operation_summary="Update landlord profile",
         request_body=LandlordProfileSerializer,
         responses={
-            200: openapi.api_response(description="Landlord profile updated", examples={
+            200: openapi.Response(description="Landlord profile updated", examples={
                 "application/json": {"success": True, "message": "Landlord profile updated", "data": {"id": 1, "manager": 2, "company_name":"xyz", "kra_pin":"AIEN3774546728", "contact_phone":"07845840302"}}
             }),
-            404: openapi.api_response(description="Not found", examples={
+            404: openapi.Response(description="Not found", examples={
                 "application/json": {"success": False, "message": "Landlord profile not found", "data": None}
             })
         }
@@ -676,10 +676,10 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
         tags=["Landlord Profiles"],
         operation_summary="Delete landlord profile (soft delete)",
         responses={
-            200: openapi.api_response(description="Landlord profile deleted", examples={
+            200: openapi.Response(description="Landlord profile deleted", examples={
                 "application/json": {"success": True, "message": "Landlord profile deleted", "data": None}
             }),
-            404: openapi.api_response(description="Not found", examples={
+            404: openapi.Response(description="Not found", examples={
                 "application/json": {"success": False, "message": "Landlord profile not found", "data": None}
             })
         }
@@ -694,7 +694,7 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
         tags=["Landlord Profiles"],
         operation_summary="Restore a disabled (soft-deleted) Landlord",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Landlord restored successfully",
                 examples={
                     "application/json": {
@@ -707,7 +707,7 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="Landlord not found",
                 examples={
                     "application/json": {
@@ -727,13 +727,11 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
             instance.restore()
             serializer = self.get_serializer(instance)
             return api_response(
-                True,"Landlord restored", serializer.data,
-                status=status.HTTP_200_OK
+                True,"Landlord restored", serializer.data,status.HTTP_200_OK
             )
         except LandlordProfile.DoesNotExist:
             return api_response(
-                False, "Landlord not found", None,
-                status=status.HTTP_404_NOT_FOUND
+                False, "Landlord not found", None,status.HTTP_404_NOT_FOUND
             )
 
 class PropertyManagerViewSet(viewsets.ModelViewSet):
@@ -774,21 +772,21 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
         operation_summary="Assign a property manager",
         request_body=PropertyManagerSerializer,
         responses={
-            201: openapi.api_response(description="Assignment created", examples={
+            201: openapi.Response(description="Assignment created", examples={
                 "application/json": {"success": True, "message": "Property manager assigned", "data": {"id": 1, "user": 3, "role": "MANAGER", "invited_by":2}}
             })
         }
     )
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return api_response(True,"Property manager assigned", response.data, status=status.HTTP_201_CREATED)
+        return api_response(True,"Property manager assigned", response.data,status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         tags=["Property Managers"],
         operation_summary="Update property manager assignment",
         request_body=PropertyManagerSerializer,
         responses={
-            200: openapi.api_response(description="Assignment updated", examples={
+            200: openapi.Response(description="Assignment updated", examples={
                 "application/json": {"success": True, "message": "Property manager updated", "data": {"id": 1, "user": 3, "role": "ACCOUNTANT", "invited_by":2}}
             })
         }
@@ -801,7 +799,7 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
         tags=["Property Managers"],
         operation_summary="Remove property manager (soft delete)",
         responses={
-            200: openapi.api_response(description="Assignment removed", examples={
+            200: openapi.Response(description="Assignment removed", examples={
                 "application/json": {"success": True, "message": "Property manager removed", "data": None}
             })
         }
@@ -816,7 +814,7 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
         tags=["Property Managers"],
         operation_summary="Restore a disabled (soft-deleted) Property Manager",
         responses={
-            200: openapi.api_response(
+            200: openapi.Response(
                 description="Property Manager restored successfully",
                 examples={
                     "application/json": {
@@ -829,7 +827,7 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-            404: openapi.api_response(
+            404: openapi.Response(
                 description="User not found",
                 examples={
                     "application/json": {
@@ -850,12 +848,12 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance)
             return api_response(
                 True,"Property Manager restored", serializer.data,
-                status=status.HTTP_200_OK
+               status.HTTP_200_OK
             )
         except PropertyManager.DoesNotExist:
             return api_response(
                  False, "Property Manager not found", None,
-                status=status.HTTP_404_NOT_FOUND
+                status.HTTP_404_NOT_FOUND
             )
 
 # ----------------- LandLord Pay Methods -----------------
@@ -897,21 +895,21 @@ class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):
         operation_summary="Create a payout method",
         request_body=LandlordPayoutMethodSerializer,
         responses={
-            201: openapi.api_response(description="Payout method created", examples={
+            201: openapi.Response(description="Payout method created", examples={
                 "application/json": {"success": True, "message": "Payout method created", "data": {"id": 1, "landlord": 2, "method": "BANK"}}
             })
         }
     )
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return api_response(True,"Payout method created",response.data, status=status.HTTP_201_CREATED)
+        return api_response(True,"Payout method created",response.data, status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         tags=["Landlord Payout Methods"],
         operation_summary="Update payout method",
         request_body=LandlordPayoutMethodSerializer,
         responses={
-            200: openapi.api_response(description="Payout method updated", examples={
+            200: openapi.Response(description="Payout method updated", examples={
                 "application/json": {"success": True, "message": "Payout method updated", "data": {"id": 1, "landlord": 2, "method": "MPESA"}}
             })
         }
@@ -924,7 +922,7 @@ class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):
         tags=["Landlord Payout Methods"],
         operation_summary="Delete payout method",
         responses={
-            200: openapi.api_response(description="Payout method deleted", examples={
+            200: openapi.Response(description="Payout method deleted", examples={
                 "application/json": {"success": True, "message": "Payout method deleted", "data": None}
             })
         }

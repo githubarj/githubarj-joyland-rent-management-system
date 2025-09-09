@@ -9,7 +9,10 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_bytes
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 
+
+User = get_user_model()
 # ----------------- Auth -----------------
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -75,7 +78,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'email', 
             'roles',
             'surname',
-            'other_name',
+            'other_names',
             'phone',
             'date_joined', 
             'is_active']
@@ -188,7 +191,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = fields = (
             "id", "email", "surname", "other_names", "phone",
             "is_tenant", "is_manager", "is_active",
-            "email_verified_at", "created_at", "updated_at"
+            "email_verified_at", "date_joined", "updated_at"
         )
 
 # ----------------- TENANT PROFILES -----------------
@@ -197,9 +200,13 @@ class TenantProfileSerializer(serializers.ModelSerializer):
         model = TenantProfile
         fields = "__all__"
 
-    def validate_user(self, value):
-        if not value.is_tenant:
-            raise serializers.ValidationError("User must be a tenant to have TenantProfile")
+    def validate(self, attrs):
+        user = attrs.get("user")
+        if user is None:
+            raise serializers.ValidationError({"user": "This field is required."})
+        if not getattr(user, "is_tenant", False):
+            raise serializers.ValidationError({"user": "User must be a tenant to have TenantProfile."})
+        return attrs
         
 # ----------------- MANAGER PROFILES -----------------
 class ManagerProfileSerializer(serializers.ModelSerializer):
@@ -207,9 +214,28 @@ class ManagerProfileSerializer(serializers.ModelSerializer):
         model = ManagerProfile
         fields = "__all__"
     
-    def validate(self, value):
-        if not value.is_manager:
-            return serializers.ValidationError("User must be a tenant to have ManagerProfile")
+    def validate(self, attrs):
+        """
+        Ensures only users with is_manager=True can have a ManagerProfile.
+        """
+        user = attrs.get("user")
+
+        if user is None:
+            # raise, don't return a ValidationError
+            raise serializers.ValidationError({"user": "This field is required."})
+
+        # If 'user' is a pk (rare with ModelSerializer, but safe to handle)
+        if not isinstance(user, User):
+            try:
+                user = User.objects.get(pk=user)
+                attrs["user"] = user
+            except User.DoesNotExist:
+                raise serializers.ValidationError({"user": "User does not exist."})
+
+        if not getattr(user, "is_manager", False):
+            raise serializers.ValidationError({"user": "User must have is_manager=True to create a ManagerProfile."})
+
+        return attrs  # ← IMPORTANT
 
 class LandlordProfileSerializer(serializers.ModelSerializer):
     class Meta:
