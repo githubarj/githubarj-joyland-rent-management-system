@@ -10,7 +10,8 @@ from .models import  (
     PropertyManager)
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .permissions import IsAuthenticatedAndActive
+from .permissions import RBACPermission
+from rest_framework.exceptions import PermissionDenied
 from .utils import api_response
 
 # ----------------- USERS -----------------
@@ -198,6 +199,9 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        # Object exists in queryset, so now apply action-level check
+        if not request.user.is_superuser and not request.user.is_admin:
+            raise PermissionDenied("Tenants cannot delete their own profile.")
         instance.soft_delete()   # call your custom soft delete
         return api_response(True, "User disabled", None,status.HTTP_200_OK)
 
@@ -240,6 +244,9 @@ class UserViewSet(viewsets.ModelViewSet):
         """Restore a soft-deleted user"""
         try:
             instance = self.get_object()
+            # Object exists in queryset, so now apply action-level check
+            if not request.user.is_superuser and not request.user.is_admin:
+                raise PermissionDenied("User cannot restore their own profile.")
             instance.restore()
             serializer = self.get_serializer(instance)
             return api_response(
@@ -256,7 +263,18 @@ class UserViewSet(viewsets.ModelViewSet):
 class TenantProfileViewSet(viewsets.ModelViewSet):
     queryset = TenantProfile.objects.all()
     serializer_class = TenantProfileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RBACPermission]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return TenantProfile.objects.all()
+        if user.is_manager and hasattr(user, "landlord_profile"):
+            return TenantProfile.objects.all()  # later: filter by landlord
+        if user.is_tenant:
+            return TenantProfile.objects.filter(user=user)
+        return TenantProfile.objects.none()
+
 
     @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="Get a tenant profile",
@@ -435,6 +453,10 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        # Object exists in queryset, so now apply action-level check
+        if not request.user.is_superuser and not request.user.is_admin:
+            if request.user.is_tenant and instance.user == request.user:
+                raise PermissionDenied("Tenants cannot delete their own profile.")
         instance.soft_delete()   # ✅ calls model’s soft_delete instead of hard delete
         return api_response(True,"Tenant profile deleted", None, status.HTTP_200_OK)
     
@@ -474,8 +496,11 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="restore")
     def restore_profile(self, request, pk=None):
         """Restore a soft-deleted tenant profile"""
+
         try:
-            instance = self.get_object()
+            instance = TenantProfile.all_objects.get(pk=pk)
+            # Object exists in queryset, so now apply action-level check
+            self.check_object_permissions(request, instance) 
             instance.restore()
             serializer = self.get_serializer(instance)
             return api_response(
@@ -486,12 +511,21 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
             return api_response(
                  False, "Tenant profile not found", None,status.HTTP_404_NOT_FOUND
             )
+        
 
 # ----------------- MANAGER PROFILES -----------------
 class ManagerProfileViewSet(viewsets.ModelViewSet):
     queryset = ManagerProfile.objects.all()
     serializer_class = ManagerProfileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RBACPermission]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return ManagerProfile.objects.all()
+        if user.is_manager and hasattr(user, "landlord_profile"):
+            return ManagerProfile.objects.all()  # later: filter by landlord
+        return ManagerProfile.objects.none()
 
     @swagger_auto_schema(tags=["Manager Profiles"], operation_summary="List all manager profiles")
     def list(self, request, *args, **kwargs):
@@ -518,7 +552,7 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        return Response(True, "Manager profile fetched",serializer.data, status.HTTP_200_OK)
+        return api_response(True, "Manager profile fetched",serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(
         tags=["Manager Profiles"],
@@ -608,7 +642,15 @@ class ManagerProfileViewSet(viewsets.ModelViewSet):
 class LandlordProfileViewSet(viewsets.ModelViewSet):
     queryset = LandlordProfile.objects.all()
     serializer_class = LandlordProfileSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RBACPermission]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return LandlordProfile.objects.all()
+        if user.is_manager and hasattr(user, "landlord_profile"):
+            return LandlordProfile.objects.filter(user=user)  # later: filter by landlord
+        return LandlordProfile.objects.none()
 
     @swagger_auto_schema(
         tags=["Landlord Profiles"],
@@ -686,6 +728,10 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        # Object exists in queryset, so now apply action-level check
+        if not request.user.is_superuser and not request.user.is_admin:
+            if request.user.is_manager and instance.user == request.user:
+                raise PermissionDenied("Landlord cannot delete their own profile.")
         instance.soft_delete() if hasattr(instance, "soft_delete") else instance.delete()
         return api_response({"success": True, "message": "Landlord profile deleted", "data": None})
     
@@ -724,6 +770,10 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
         """Restore a soft-deleted user"""
         try:
             instance = self.get_object()
+            # Object exists in queryset, so now apply action-level check
+            if not request.user.is_superuser and not request.user.is_admin:
+                if request.user.is_manager and instance.user == request.user:
+                    raise PermissionDenied("Landlords cannot restore their own profile.")
             instance.restore()
             serializer = self.get_serializer(instance)
             return api_response(
@@ -737,8 +787,17 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
 class PropertyManagerViewSet(viewsets.ModelViewSet):
     queryset = PropertyManager.objects.all()
     serializer_class = PropertyManagerSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RBACPermission]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return PropertyManager.objects.all()
+        if user.is_manager and hasattr(user, "landlord_profile"):
+            return PropertyManager.objects.all()  # later: filter by landlord
+        if user.is_manager:
+            return PropertyManager.objects.filter(user=user)
+        return TenantProfile.objects.none()
 
     @swagger_auto_schema(
         tags=["Property Managers"],
@@ -760,7 +819,7 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        return Response(True, "Property manager fetched", serializer.data, status.HTTP_200_OK)
+        return api_response(True, "Property manager fetched", serializer.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Property Managers"], operation_summary="List property manager assignments")
     def list(self, request, *args, **kwargs):
@@ -806,12 +865,15 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        # Object exists in queryset, so now apply action-level check
+        if not request.user.is_superuser and not request.user.is_admin:
+            if request.user.is_manager and instance.user == request.user:
+                raise PermissionDenied("Property Managers cannot delete their own profile.")
         instance.soft_delete() if hasattr(instance, "soft_delete") else instance.delete()
         return api_response(True,"Property manager removed", None, status.HTTP_200_OK)
 
-    @swagger_auto_schema(
+    @swagger_auto_schema(tags=["Property Managers"],
         method="post",
-        tags=["Property Managers"],
         operation_summary="Restore a disabled (soft-deleted) Property Manager",
         responses={
             200: openapi.Response(
@@ -844,17 +906,14 @@ class PropertyManagerViewSet(viewsets.ModelViewSet):
         """Restore a soft-deleted user"""
         try:
             instance = self.get_object()
+            if not request.user.is_superuser and not request.user.is_admin:
+                if request.user.is_manager and instance.user == request.user:
+                    raise PermissionDenied("Property Managers cannot restore their own profile.")
             instance.restore()
             serializer = self.get_serializer(instance)
-            return api_response(
-                True,"Property Manager restored", serializer.data,
-               status.HTTP_200_OK
-            )
+            return api_response(True,"Property Manager restored", serializer.data,status.HTTP_200_OK)
         except PropertyManager.DoesNotExist:
-            return api_response(
-                 False, "Property Manager not found", None,
-                status.HTTP_404_NOT_FOUND
-            )
+            return api_response(False, "Property Manager not found", None,status.HTTP_404_NOT_FOUND)
 
 # ----------------- LandLord Pay Methods -----------------
 class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):

@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from .serializers import (PermissionSerializer, RolePermissionSerializer, UserPermissionSerializer)
 from .models import  (Permission, RolePermission, UserPermission)
 from drf_yasg.utils import swagger_auto_schema
-from .permissions import IsAuthenticatedAndActive
+from .permissions import RBACPermission
 from drf_yasg import openapi
 from .utils import api_response
 
@@ -12,7 +12,7 @@ from .utils import api_response
 class PermissionViewSet(viewsets.ModelViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RBACPermission]
 
 
     @swagger_auto_schema(tags=["Permissions"],
@@ -58,6 +58,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
         }
     )
     def list(self, request, *args, **kwargs):
+        print("DEBUG basename:", self.basename) 
         response = super().list(request, *args, **kwargs)
         return api_response(True,"Permissions fetched", response.data, status.HTTP_200_OK)
 
@@ -172,7 +173,13 @@ class PermissionViewSet(viewsets.ModelViewSet):
 class RolePermissionViewSet(viewsets.ModelViewSet):
     queryset = RolePermission.objects.all()
     serializer_class = RolePermissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [RBACPermission]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return RolePermission.objects.all()
+        return RolePermission.objects.none()
 
     @swagger_auto_schema(
         tags=["Role Permissions"],
@@ -318,8 +325,14 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
 class UserPermissionViewSet(viewsets.ModelViewSet):
     queryset = UserPermission.objects.all()
     serializer_class = UserPermissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [RBACPermission]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return UserPermission.objects.all()
+        return UserPermission.objects.none()
+    
     @swagger_auto_schema(tags=["User Permissions"],
         operation_summary="Get a user permission override",
         responses={

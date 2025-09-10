@@ -46,6 +46,8 @@ class SoftDeleteModel(models.Model):
     def delete(self, using=None, keep_parents=False):
         """Override delete() to always perform soft delete"""
         self.soft_delete()
+
+
 class UserManager(BaseUserManager):
     """Custom manager to handle soft deletes and case-insensitive email lookup"""
     # def get_queryset(self):
@@ -109,6 +111,12 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel ):
             models.Index(fields=["email"], name="idx_users_email") #explicit email index
         ]
 
+    @property
+    def landlord_profile(self):
+        if hasattr(self, "manager_profile"):
+            return getattr(self.manager_profile, "landlord_profile", None)
+        return None
+    
     def __str__(self):
         role = "Tenant" if self.is_tenant else "Manager" if self.is_manager else "User"
         return f"{self.email} ({role})"
