@@ -64,13 +64,14 @@ class RBACPermission(BasePermission):
            
             if view.action in ["retrieve", "update", "partial_update"]:
                 if user.is_tenant and obj.user == user:
-                    return True
-                if user.is_manager and hasattr(user, "landlord_profile"):
-                    return True
-                return False
+                    return True  # fallback hard check
+                # then fall back to dynamic permission
+                required_permission = "can_manage_tenant_profiles" if view.action in ["update", "partial_update"] else "can_view_tenant_profiles"
+                return self._check_dynamic_permission(user, required_permission)
+
 
             if view.action == "destroy":
-                if user.is_manager and user.landlord_profile:
+                if user.landlord_profile:
                     return True  # landlord can delete tenants
                 return False
             
@@ -104,10 +105,17 @@ class RBACPermission(BasePermission):
     def _check_dynamic_permission(self, user, permission_code, property_id=None):
         """Check RolePermission + UserPermission for dynamic access"""
         # Role defaults
-        role = getattr(getattr(user, "manager_profile", None), "role", None)
+        roles = []
+        if hasattr(user, "manager_profile"):
+            roles.append(user.manager_profile.role)
+        if getattr(user, "is_tenant", False):
+            roles.append("tenant")
+        # role = getattr(getattr(user, "manager_profile", None), "role", None)
+
+
         role_perms = set(
-            RolePermission.objects.filter(role=role).values_list("permission__code", flat=True)
-        )if role else set()
+            RolePermission.objects.filter(role__in=roles).values_list("permission__code", flat=True)
+        )if roles else set()
 
         # User-specific global
         # user_global = set(
