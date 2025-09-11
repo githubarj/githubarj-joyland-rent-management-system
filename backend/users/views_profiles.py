@@ -264,6 +264,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     queryset = TenantProfile.objects.all()
     serializer_class = TenantProfileSerializer
     permission_classes = [IsAuthenticated, RBACPermission]
+    required_permission = "can_manage_tenant_profiles"
 
     def get_queryset(self):
         user = self.request.user
@@ -275,6 +276,18 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
             return TenantProfile.objects.filter(user=user)
         return TenantProfile.objects.none()
 
+    def get_required_permission(self):
+        """Map actions to permission codes dynamically"""
+        if self.action in ["list", "retrieve"]:
+            return "can_view_tenant_profiles"
+        if self.action in ["create", "update", "partial_update"]:
+            return "can_manage_tenant_profiles"
+        return None
+    
+    def get_permissions(self):
+        # Attach required_permission so RBACPermission can check it
+        self.required_permission = self.get_required_permission()
+        return [permission() for permission in self.permission_classes]
 
     @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="Get a tenant profile",

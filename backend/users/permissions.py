@@ -44,6 +44,11 @@ class RBACPermission(BasePermission):
         if view.queryset.model in [AppPermission, RolePermission, UserPermission]:
             return False  # 👈 non-admins cannot access
         
+        # Dynamic permission check
+        required_permission = getattr(view, "required_permission", None)
+        if required_permission:
+            return self._check_dynamic_permission(user, required_permission)
+        
         return True
     
     def has_object_permission(self, request, view, obj):
@@ -95,4 +100,34 @@ class RBACPermission(BasePermission):
             return False
 
         return False
-    
+
+    def _check_dynamic_permission(self, user, permission_code, property_id=None):
+        """Check RolePermission + UserPermission for dynamic access"""
+        # Role defaults
+        role = getattr(getattr(user, "manager_profile", None), "role", None)
+        role_perms = set(
+            RolePermission.objects.filter(role=role).values_list("permission__code", flat=True)
+        )if role else set()
+
+        # User-specific global
+        # user_global = set(
+        #     UserPermission.objects.filter(user=user, property__isnull=True)
+        #     .values_list("permission_code", flat=True)
+        # )
+
+        user_global = set(
+            UserPermission.objects.filter(user=user)
+            .values_list("permission__code", flat=True)
+        )
+
+        # User-specific property scoped
+        # user_property = set()
+        # if property_id:
+        #     user_property = set(
+        #         UserPermission.objects.filter(user=user,property_id=property_id)
+        #         .values_list("permission__code",flat=True)
+        #     )
+        
+        effective = role_perms | user_global
+        # effective = role_perms | user_global | user_property
+        return permission_code in effective
