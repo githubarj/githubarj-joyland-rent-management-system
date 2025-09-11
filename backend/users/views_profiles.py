@@ -20,6 +20,13 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_admin:
+            return User.objects.all()
+        return User.objects.none()
+
+
     @swagger_auto_schema(tags=["Users"],
         operation_summary="Get a user",
         responses={
