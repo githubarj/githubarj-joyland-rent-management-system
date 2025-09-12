@@ -41,7 +41,7 @@ class RBACPermission(BasePermission):
         
         # Example: Only admins can CRUD Permission/RolePermission/UserPermission models
          # Restrict Permission-related models
-        if view.queryset.model in [AppPermission, RolePermission, UserPermission]:
+        if view.queryset.model in [User, AppPermission, RolePermission, UserPermission]:
             return False  # 👈 non-admins cannot access
         
         # Dynamic permission check
