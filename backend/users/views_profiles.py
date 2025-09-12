@@ -253,7 +253,7 @@ class UserViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             # Object exists in queryset, so now apply action-level check
             if not request.user.is_superuser and not request.user.is_admin:
-                raise PermissionDenied("User cannot restore their own profile.")
+                raise PermissionDenied("User cannot restore the profile.")
             instance.restore()
             serializer = self.get_serializer(instance)
             return api_response(
