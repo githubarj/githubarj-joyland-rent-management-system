@@ -97,7 +97,7 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel ):
         constraints = [
             #Ensure only one role active at a time (tenant or manager or neither)
             models.CheckConstraint(
-                check =(
+                condition =(
                     (models.Q(is_tenant=True, is_manager=False)) |
                     (models.Q(is_tenant=False, is_manager=True)) |
                     (models.Q(is_tenant=False, is_manager=False))

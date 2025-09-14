@@ -37,7 +37,7 @@ def custom_exception_handler(exc, context):
                 return api_response(False, message, None, drf_status.HTTP_400_BAD_REQUEST,
                 )
         return api_response(
-           False, "Database integrity error.", None,drf_status.HTTP_400_BAD_REQUEST        )
+           False, "Database integrity error.", None,drf_status.HTTP_400_BAD_REQUEST)
          
 
     # Let DRF build the base response first
