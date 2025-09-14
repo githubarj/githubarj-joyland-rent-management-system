@@ -29,7 +29,7 @@ def test_admin_can_restore_soft_deleted_user(admin_user, tenant_user):
     assert not tenant_user.is_active
 
     tenant_user.restore()
-    tenant_user.resresh_from_db()
+    tenant_user.refresh_from_db()
 
     assert tenant_user.is_active is True
-    assert tenant_user.is_deleted is None
+    assert tenant_user.deleted_at is None
