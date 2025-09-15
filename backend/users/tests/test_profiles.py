@@ -7,6 +7,16 @@ from users.models import TenantProfile, ManagerProfile, LandlordProfile
 User = get_user_model()
 
 @pytest.mark.django_db
+def test_user_cannot_have_two_profile(api_client, admin_user, tenant_user):
+    api_client.force_authenticate(user=admin_user)
+
+    url = reverse("users-detail", args=[tenant_user.id])
+    payload = {"is_manager": True}
+    response = api_client.patch(url, payload)
+
+    assert response.status_code == 400
+
+@pytest.mark.django_db
 def test_tenant_can_view_own_profile(api_client, tenant_user):
     api_client.force_authenticate(user=tenant_user)
     url = reverse("tenant-profiles-detail", args=[tenant_user.tenant_profile.id])
