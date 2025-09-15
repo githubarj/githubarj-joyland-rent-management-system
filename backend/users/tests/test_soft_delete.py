@@ -20,8 +20,11 @@ def test_soft_deleted_user_cannot_login(api_client, tenant_user):
 def test_soft_deleted_user_not_in_queryset(tenant_user):
     tenant_user.soft_delete()
 
-    # Your UserManager excludes deleted_at != None  
+    # Default manager hides them
     assert User.objects.filter(id=tenant_user.id).count() == 0
+
+    # Base manager still sees them
+    assert User._base_manager.filter(id=tenant_user.id).count() == 1
 
 @pytest.mark.django_db
 def test_admin_can_restore_soft_deleted_user(admin_user, tenant_user):

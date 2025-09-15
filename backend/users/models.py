@@ -20,7 +20,6 @@ class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
-
 class SoftDeleteModel(models.Model):
     """Abstract base class for soft delete functionality"""
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -47,12 +46,11 @@ class SoftDeleteModel(models.Model):
         """Override delete() to always perform soft delete"""
         self.soft_delete()
 
-
 class UserManager(BaseUserManager):
     """Custom manager to handle soft deletes and case-insensitive email lookup"""
-    # def get_queryset(self):
-    #     # Exclude soft-deleted users by default
-    #     return super().get_queryset().filter(deleted_at__isnull=True)
+    def get_queryset(self):
+        # Exclude soft-deleted users by default
+        return super().get_queryset().filter(deleted_at__isnull=True)
     
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -136,6 +134,11 @@ class ManagerProfile(models.Model):
         return f"{self.user.email} ({self.role})"
 
 class TenantProfile(SoftDeleteModel):
+
+    def get_queryset(self):
+        # Exclude soft-deleted users by default
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tenant_profile")
     national_id = models.CharField(max_length=100, blank=True, null=True)
     employer_name = models.CharField(max_length=255, blank=True, null=True)

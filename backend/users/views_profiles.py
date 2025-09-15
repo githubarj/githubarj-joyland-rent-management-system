@@ -23,8 +23,9 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser or user.is_admin:
-            return User.objects.all()
-        return User.objects.none()
+            # Admin sees everything, including soft-deleted
+            return User._base_manager.all()   # bypass the manager’s filter
+        return super().get_queryset()  # already applies deleted_at__isnull=True
 
 
     @swagger_auto_schema(tags=["Users"],
@@ -274,14 +275,15 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
     required_permission = "can_manage_tenant_profiles"
 
     def get_queryset(self):
+        qs = TenantProfile.objects.filter(deleted_at__isnull=True)
         user = self.request.user
         if user.is_superuser or user.is_admin:
-            return TenantProfile.objects.all()
+            return TenantProfile._base_manager.all()  # bypass deleted_at filter
         if user.is_manager and hasattr(user, "landlord_profile"):
-            return TenantProfile.objects.all()  # later: filter by landlord
+            return TenantProfile._base_manager.all()  # later: filter to landlord’s properties
         if user.is_tenant:
-            return TenantProfile.objects.filter(user=user)
-        return TenantProfile.objects.none()
+            return qs.filter(user=user)
+        return qs.none()
 
     def get_required_permission(self):
         """Map actions to permission codes dynamically"""
