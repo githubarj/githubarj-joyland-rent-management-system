@@ -1,5 +1,5 @@
 from django.conf import settings
-from .models import User
+from .models import User, TenantProfile, ManagerProfile,LandlordProfile, LandlordPayoutMethod,PropertyManager, Permission, RolePermission, UserPermission
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -9,8 +9,11 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_bytes
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 
 
+User = get_user_model()
+# ----------------- Auth -----------------
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
@@ -20,7 +23,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = User
-        fields = ("email","full_name", "password", "is_tenant", "is_landlord")
+        fields = ("email", "password","surname","other_names","phone", "is_tenant", "is_manager")
         extra_kwargs = {
             "password": {"write_only": True}
         }
@@ -54,7 +57,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
         return user   
-
          
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="Enter your email")
@@ -72,16 +74,23 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'roles', 'date_joined', 'is_active']
+        fields = ['id', 
+            'email', 
+            'roles',
+            'surname',
+            'other_names',
+            'phone',
+            'date_joined', 
+            'is_active']
     
     def get_roles(self, obj):
         roles = []
         if obj.is_admin:
-            roles.append("admin")
+            roles.append("Admin")
         if obj.is_tenant:
-            roles.append("tenant")
-        if obj.is_landlord:
-            roles.append("landlord")
+            roles.append("Tenant")
+        if obj.is_manager:
+            roles.append("Manager")
         return roles
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -174,4 +183,88 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         self.user.set_password(self.validated_data["new_password"])
         self.user.save()
         return self.user
+
+# ----------------- USERS -----------------
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = fields = (
+            "id", "email", "surname", "other_names", "phone",
+            "is_tenant", "is_manager", "is_active",
+            "email_verified_at", "date_joined", "updated_at"
+        )
+
+# ----------------- TENANT PROFILES -----------------
+class TenantProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenantProfile
+        fields = "__all__"
+
+    def validate(self, attrs):
+        user = attrs.get("user")
+        if user is None:
+            raise serializers.ValidationError({"user": "This field is required."})
+        if not getattr(user, "is_tenant", False):
+            raise serializers.ValidationError({"user": "User must be a tenant to have TenantProfile."})
+        return attrs
+        
+# ----------------- MANAGER PROFILES -----------------
+class ManagerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ManagerProfile
+        fields = "__all__"
+    
+    def validate(self, attrs):
+        """
+        Ensures only users with is_manager=True can have a ManagerProfile.
+        """
+        user = attrs.get("user")
+
+        if user is None:
+            # raise, don't return a ValidationError
+            raise serializers.ValidationError({"user": "This field is required."})
+
+        # If 'user' is a pk (rare with ModelSerializer, but safe to handle)
+        if not isinstance(user, User):
+            try:
+                user = User.objects.get(pk=user)
+                attrs["user"] = user
+            except User.DoesNotExist:
+                raise serializers.ValidationError({"user": "User does not exist."})
+
+        if not getattr(user, "is_manager", False):
+            raise serializers.ValidationError({"user": "User must have is_manager=True to create a ManagerProfile."})
+
+        return attrs  # ← IMPORTANT
+
+class LandlordProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LandlordProfile
+        fields = "__all__"
+
+class LandlordPayoutMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LandlordPayoutMethod
+        fields = "__all__"
+
+class PropertyManagerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyManager
+        fields = "__all__"
+
+# ----------------- PERMISSIONS -----------------
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = "__all__"
+
+class RolePermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RolePermission
+        fields = "__all__"
+    
+class UserPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPermission
+        fields = "__all__"
 

@@ -155,9 +155,10 @@ AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    # Add it here — as a key/value, not inside a list:
+    "EXCEPTION_HANDLER": "users.api_exceptions.custom_exception_handler",   
 }
 
 SIMPLE_JWT = {
