@@ -28,3 +28,11 @@ dist-ssr
 */venv/
 .env
 */db.sqlite.3
+./venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+
+

@@ -1,8 +1,8 @@
 import { AppShell, NavLink, ScrollArea } from '@mantine/core';
 import React, { ReactNode } from 'react';
-import { links, navLinksProps } from '../../../helpers/navigation';
 import { IconType } from 'react-icons/lib';
 import { NavLink as RouterLink } from 'react-router-dom';
+import { links, navLinksProps } from '../../../utils/constants/navigation';
 
 const Navlinks: React.FC = () => {
   const navIcon = (icon: IconType): ReactNode => {
@@ -23,7 +23,7 @@ const Navlinks: React.FC = () => {
   );
 
   return (
-    <AppShell.Section component={ScrollArea} type='hover' >
+    <AppShell.Section component={ScrollArea} type='hover'>
       {links.map(renderNavLink)}
     </AppShell.Section>
   );
