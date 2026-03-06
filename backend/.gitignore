@@ -23,10 +23,16 @@ dist-ssr
 *.sln
 *.sw?
 
-# Ignore npm lockfile if using Yarn
-package-lock.json
-
 #pyton-django
 */*.env
 */venv/
 .env
+*/db.sqlite.3
+./venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+
+

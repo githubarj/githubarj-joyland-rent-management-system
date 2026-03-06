@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import '@mantine/core/styles.css';
 import {
   Affix,
   AppShell,
   Button,
+  Center,
+  Flex,
+  Loader,
   Transition,
 } from '@mantine/core';
 import { useDisclosure, useWindowScroll } from '@mantine/hooks';
@@ -13,10 +16,22 @@ import AppFooter from './Components/Footer/AppFooter';
 import layout from './styles/layout.module.scss';
 import { Outlet } from 'react-router-dom';
 import { FaArrowUpLong } from 'react-icons/fa6';
+import { fetchCurrentUser } from '../api/services/_auth.service';
+import { useLoadingStore } from '../store/useLoadingStore';
+import { showNotification } from '@mantine/notifications';
 
 const AppLayout: React.FC = () => {
   const [open, { toggle }] = useDisclosure();
   const [scroll, scrollTo] = useWindowScroll();
+  const { loading } = useLoadingStore();
+
+  useEffect(() => {
+    const initUser = async () => {
+      await fetchCurrentUser();
+    };
+
+    initUser();
+  }, []);
 
   return (
     <AppShell
@@ -47,7 +62,13 @@ const AppLayout: React.FC = () => {
             )}
           </Transition>
         </Affix>
-        <Outlet />
+        {loading['user'] ? (
+          <Center h='100%' style={{ minHeight: '80vh' }}>
+            <Loader size={64} />
+          </Center>
+        ) : (
+          <Outlet />
+        )}
       </AppShell.Main>
       <AppFooter />
     </AppShell>
