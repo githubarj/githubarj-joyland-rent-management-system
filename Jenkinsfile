@@ -16,7 +16,6 @@ pipeline {
         DB_NAME           = credentials('db-name')
         DB_USER           = credentials('db-user')
         DB_PASSWORD       = credentials('db-password')
-        SLACK_WEBHOOK     = credentials('slack-webhook-url')
         GHCR_TOKEN        = credentials('ghcr-token')
     }
 
@@ -66,6 +65,7 @@ pipeline {
                     branch 'development'
                     branch 'main'
                     expression { env.BRANCH_NAME.startsWith('release/') }
+                    expression { env.CHANGE_ID }
                 }
             }
             // Run backend and frontend tests at same time
