@@ -63,6 +63,7 @@ pipeline {
                     branch 'development'
                     branch 'main'
                     expression { env.BRANCH_NAME.startsWith('release/') }
+                    changeRequest()
                 }
             }
             parallel {
@@ -117,6 +118,7 @@ pipeline {
                 anyOf {
                     branch 'main'
                     branch 'development'
+                    changeRequest()
                 }
             }
             steps {
