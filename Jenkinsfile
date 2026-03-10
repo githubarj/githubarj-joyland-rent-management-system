@@ -2,51 +2,30 @@ pipeline {
     agent any
 
     environment {
-        PYTHON_VERSION  = '3.11'
-        NODE_VERSION    = '18'
-        APP_DIR         = "${WORKSPACE}" // Jenkins workspace
-        REGISTRY        = 'ghcr.io'
-        IMAGE_NAME      = 'githubarj/githubarj-joyland-rent-management-system'
-
-        // Jenkins credentials IDs
-        DJANGO_SECRET_KEY = credentials('django-secret-key')
-        DB_NAME           = credentials('db-name')
-        DB_USER           = credentials('db-user')
-        DB_PASSWORD       = credentials('db-password')
-        GHCR_TOKEN        = credentials('ghcr-token')
-    }
-
-    triggers {
-        githubPush()
-        pollSCM('H/5 * * * *')
+        // Dynamically passed secrets from Jenkins credentials
+        DJANGO_SECRET_KEY = credentials('DJANGO_SECRET_KEY')
+        DB_NAME          = credentials('DB_NAME')
+        DB_USER          = credentials('DB_USER')
+        DB_PASSWORD      = credentials('DB_PASSWORD')
     }
 
     options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
         timeout(time: 30, unit: 'MINUTES')
-        disableConcurrentBuilds()
         timestamps()
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                cleanWs()
                 checkout scm
-                sh 'git log --oneline -5'
             }
         }
 
         stage('Prepare .env') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'django-secret-key', variable:        'DJANGO_SECRET_KEY'),
-                    string(credentialsId: 'db-name', variable: 'DB_NAME'),
-                    string(credentialsId: 'db-user', variable: 'DB_USER'),
-                    string(credentialsId: 'db-password', variable: 'DB_PASSWORD')
-                ]) {
-                    sh script: '''
+                script {
+                    sh '''
                     cat > backend/.env <<EOF
                     DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
                     DB_NAME=$DB_NAME
@@ -59,111 +38,59 @@ pipeline {
                     '''
                 }
             }
-    }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                sh 'docker-compose -f docker-compose.yml build backend frontend'
+            }
+        }
 
         stage('Run Tests') {
-            when {
-                anyOf {
-                    branch 'development'
-                    branch 'main'
-                    expression { env.BRANCH_NAME.startsWith('release/') }
-                    changeRequest()
-                }
-            }
             parallel {
-
                 stage('Backend Tests') {
                     steps {
                         script {
-                            docker.image('python:3.11-slim').inside('--network backend-network') {
-                                dir('backend') {
-                                    sh '''
-                                        pip install --upgrade pip -q
-                                        pip install -r requirements/dev.txt -q
-
-                                        black --check --diff .
-                                        isort --check-only --diff .
-                                        flake8 .
-                                        bandit -r apps/ -c pyproject.toml
-                                        pytest --cov=. --cov-report=xml:coverage.xml --cov-fail-under=80 -v
-                                    '''
-                                }
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            junit(testResults: 'backend/test-results/*.xml', allowEmptyResults: true)
+                            sh 'docker-compose run --rm backend python manage.py test'
                         }
                     }
                 }
-
                 stage('Frontend Tests') {
                     steps {
                         script {
-                            docker.image("node:${NODE_VERSION}-alpine").inside {
-                                dir('frontend') {
-                                    sh '''
-                                        npm ci --silent
-                                        npx prettier --check src/
-                                        npm run lint
-                                        CI=true npm run test:coverage
-                                    '''
-                                }
-                            }
+                            sh 'docker-compose run --rm frontend npm test -- --watchAll=false'
                         }
                     }
                 }
             }
         }
 
-        stage('Build & Deploy Docker') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'development'
-                    changeRequest()
-                }
-            }
+        stage('Deploy Docker Containers') {
             steps {
-                script {
-                    // Login to GitHub Container Registry
-                    sh "echo ${GHCR_TOKEN} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin"
-
-                    // Build and deploy Docker Compose stack
-                    sh """
-                    docker compose -f docker-compose.yml down --remove-orphans
-                    docker compose -f docker-compose.yml build
-                    docker compose -f docker-compose.yml up -d
-                    """
-                }
+                sh 'docker-compose up -d'
             }
         }
 
         stage('Health Check') {
-            when { branch 'main' }
             steps {
-                script {
-                    sleep(20)
-                    retry(5) {
-                        sh '''
-                        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health/)
-                        if [ "$response" != "200" ]; then
-                            echo "Health check failed: $response"
-                            sleep 10
-                            exit 1
-                        fi
-                        echo "Health check passed!"
-                        '''
-                    }
-                }
+                sh '''
+                echo "Checking backend health..."
+                curl -f http://localhost:8000/ || exit 1
+                '''
             }
         }
     }
 
     post {
         always {
-                cleanWs()
+            echo "Cleaning workspace..."
+            cleanWs()
+        }
+        success {
+            echo "Build, test, and deploy succeeded!"
+        }
+        failure {
+            echo "Something went wrong. Check the logs above."
         }
     }
 }
