@@ -12,7 +12,9 @@ volumes:
 services:
 
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: .
+      dockerfile: docker/jenkins/Dockerfile
     user: root
     restart: unless-stopped          # ← missing
     ports:
