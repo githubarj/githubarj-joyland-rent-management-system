@@ -4,12 +4,11 @@ pipeline {
     environment {
         PYTHON_VERSION  = '3.11'
         NODE_VERSION    = '18'
-        APP_DIR         = "${WORKSPACE}" // Jenkins workspace
+        APP_DIR         = "${WORKSPACE}"
         REGISTRY        = 'ghcr.io'
         IMAGE_NAME      = 'githubarj/githubarj-joyland-rent-management-system'
-        GITHUB_ACTOR = 'githubarj'
+        GITHUB_ACTOR    = 'githubarj'
 
-        // Jenkins credentials IDs
         DJANGO_SECRET_KEY = credentials('django-secret-key')
         DB_NAME           = credentials('db-name')
         DB_USER           = credentials('db-user')
@@ -42,7 +41,7 @@ pipeline {
         stage('Prepare .env') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'django-secret-key', variable:        'DJANGO_SECRET_KEY'),
+                    string(credentialsId: 'django-secret-key', variable: 'DJANGO_SECRET_KEY'),
                     string(credentialsId: 'db-name', variable: 'DB_NAME'),
                     string(credentialsId: 'db-user', variable: 'DB_USER'),
                     string(credentialsId: 'db-password', variable: 'DB_PASSWORD')
@@ -60,9 +59,7 @@ pipeline {
                     '''
                 }
             }
-    }
-
-
+        }
 
         stage('Build & Deploy Docker') {
             when {
@@ -74,10 +71,7 @@ pipeline {
             }
             steps {
                 script {
-                    // Login to GitHub Container Registry
                     sh "echo ${GHCR_TOKEN} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin"
-
-                    // Build and deploy Docker Compose stack
                     sh """
                     docker compose -f docker-compose.yml down --remove-orphans
                     docker compose -f docker-compose.yml build
@@ -110,7 +104,7 @@ pipeline {
 
     post {
         always {
-                cleanWs()
+            cleanWs()
         }
     }
 }

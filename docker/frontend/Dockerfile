@@ -6,9 +6,9 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 
-RUN nmp ci 
+RUN npm ci
 
-# STAGE 2:Development 
+# STAGE 2:Development
 
 FROM dependencies AS development
 
@@ -16,15 +16,15 @@ COPY . .
 
 EXPOSE 5174
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
 
 
 
 # STAGE 3: Builder
 
-FROM dependencies AS builder 
+FROM dependencies AS builder
 
-COPY . . 
+COPY . .
 
 ARG REACT_APP_API_URL
 ARG REACT_APP_ENV
