@@ -7,6 +7,7 @@ pipeline {
         APP_DIR         = "${WORKSPACE}" // Jenkins workspace
         REGISTRY        = 'ghcr.io'
         IMAGE_NAME      = 'githubarj/githubarj-joyland-rent-management-system'
+        GITHUB_ACTOR = 'githubarj'
 
         // Jenkins credentials IDs
         DJANGO_SECRET_KEY = credentials('django-secret-key')
