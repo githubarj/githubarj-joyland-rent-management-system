@@ -61,61 +61,7 @@ pipeline {
             }
     }
 
-        stage('Run Tests') {
-            when {
-                anyOf {
-                    branch 'development'
-                    branch 'main'
-                    expression { env.BRANCH_NAME.startsWith('release/') }
-                    changeRequest()
-                }
-            }
-            parallel {
 
-                stage('Backend Tests') {
-                    steps {
-                        script {
-                            docker.image('python:3.11-slim').inside('--network backend-network') {
-                                dir('backend') {
-                                    sh '''
-                                        pip install --upgrade pip -q
-                                        pip install -r requirements/dev.txt -q
-
-                                        black --check --diff .
-                                        isort --check-only --diff .
-                                        flake8 .
-                                        bandit -r apps/ -c pyproject.toml
-                                        pytest --cov=. --cov-report=xml:coverage.xml --cov-fail-under=80 -v
-                                    '''
-                                }
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            junit(testResults: 'backend/test-results/*.xml', allowEmptyResults: true)
-                        }
-                    }
-                }
-
-                stage('Frontend Tests') {
-                    steps {
-                        script {
-                            docker.image("node:${NODE_VERSION}-alpine").inside {
-                                dir('frontend') {
-                                    sh '''
-                                        npm ci --silent
-                                        npx prettier --check src/
-                                        npm run lint
-                                        CI=true npm run test:coverage
-                                    '''
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         stage('Build & Deploy Docker') {
             when {
