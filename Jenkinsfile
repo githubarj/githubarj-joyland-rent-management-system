@@ -40,22 +40,26 @@ pipeline {
 
         stage('Prepare .env') {
             steps {
-                script {
-                    // Dynamically create backend/.env for Docker Compose
-                    sh """
+                withCredentials([
+                    string(credentialsId: 'django-secret-key', variable:        'DJANGO_SECRET_KEY'),
+                    string(credentialsId: 'db-name', variable: 'DB_NAME'),
+                    string(credentialsId: 'db-user', variable: 'DB_USER'),
+                    string(credentialsId: 'db-password', variable: 'DB_PASSWORD')
+                ]) {
+                    sh script: '''
                     cat > backend/.env <<EOF
-                    DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-                    DB_NAME=${DB_NAME}
-                    DB_USER=${DB_USER}
-                    DB_PASSWORD=${DB_PASSWORD}
+                    DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
+                    DB_NAME=$DB_NAME
+                    DB_USER=$DB_USER
+                    DB_PASSWORD=$DB_PASSWORD
                     DB_HOST=db
                     DB_PORT=5432
                     REDIS_URL=redis://redis:6379/0
                     EOF
-                    """
+                    '''
                 }
             }
-        }
+    }
 
         stage('Run Tests') {
             when {
