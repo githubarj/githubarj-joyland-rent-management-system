@@ -156,6 +156,10 @@ pipeline {
     }
 
     post {
-        always { cleanWs() }
+        always {
+            node {
+                cleanWs()
+            }
+        }
     }
 }
