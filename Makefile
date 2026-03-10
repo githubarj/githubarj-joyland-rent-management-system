@@ -58,3 +58,22 @@ clean:
 
 prune:
 	docker system prune -af --volumes
+
+# ─── Pre-commit ───────────────────────────────
+hooks-install:
+	pre-commit install
+	pre-commit install --hook-type commit-msg
+
+# Run hooks against ALL files (not just changed ones)
+# Useful first time setup or after adding new hooks
+hooks-run:
+	pre-commit run --all-files
+
+# Update all hooks to latest versions
+hooks-update:
+	pre-commit autoupdate
+
+# Skip hooks for ONE commit (use sparingly!)
+# Usage: make commit-skip MSG="your message"
+commit-skip:
+	git commit -m "$(MSG)" --no-verify
