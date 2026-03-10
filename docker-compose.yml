@@ -7,14 +7,23 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  jenkins_home:
 
 services:
 
   jenkins:
     image: jenkins/jenkins:lts
+    user: root
+    restart: unless-stopped          # ← missing
+    ports:
+      - "8080:8080"                  # ← missing
+      - "50000:50000"                # ← missing
+    networks:
+      - backend-network              # ← missing (can't talk to other services)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
+      - jenkins_home:/var/jenkins_home  # ← missing (you'll lose data on restart!)
 
 
   db:
