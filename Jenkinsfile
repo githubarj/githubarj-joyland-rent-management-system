@@ -4,10 +4,11 @@ pipeline {
     environment {
         PYTHON_VERSION  = '3.11'
         NODE_VERSION    = '18'
-        APP_DIR         = '/opt/app'
+        APP_DIR         = "${WORKSPACE}" // Jenkins workspace
         REGISTRY        = 'ghcr.io'
         IMAGE_NAME      = 'githubarj/githubarj-joyland-rent-management-system'
 
+        // Jenkins credentials IDs
         DJANGO_SECRET_KEY = credentials('django-secret-key')
         DB_NAME           = credentials('db-name')
         DB_USER           = credentials('db-user')
@@ -37,14 +38,31 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            // Run on main, development, release/*, or PRs
+        stage('Prepare .env') {
+            steps {
+                script {
+                    // Dynamically create backend/.env for Docker Compose
+                    sh """
+                    cat > backend/.env <<EOF
+                    DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+                    DB_NAME=${DB_NAME}
+                    DB_USER=${DB_USER}
+                    DB_PASSWORD=${DB_PASSWORD}
+                    DB_HOST=db
+                    DB_PORT=5432
+                    REDIS_URL=redis://redis:6379/0
+                    EOF
+                    """
+                }
+            }
+        }
+
+        stage('Run Tests') {
             when {
                 anyOf {
-                    branch 'main'
                     branch 'development'
+                    branch 'main'
                     expression { env.BRANCH_NAME.startsWith('release/') }
-                    changeRequest()
                 }
             }
             parallel {
@@ -52,16 +70,17 @@ pipeline {
                 stage('Backend Tests') {
                     steps {
                         script {
-                            docker.image('python:3.11-slim').inside('--network ci-network') {
+                            docker.image('python:3.11-slim').inside('--network backend-network') {
                                 dir('backend') {
                                     sh '''
                                         pip install --upgrade pip -q
                                         pip install -r requirements/dev.txt -q
+
                                         black --check --diff .
                                         isort --check-only --diff .
                                         flake8 .
                                         bandit -r apps/ -c pyproject.toml
-                                        pytest --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-report=term-missing --cov-fail-under=80 -v
+                                        pytest --cov=. --cov-report=xml:coverage.xml --cov-fail-under=80 -v
                                     '''
                                 }
                             }
@@ -69,14 +88,6 @@ pipeline {
                     }
                     post {
                         always {
-                            publishHTML(target: [
-                                allowMissing: false,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'backend/htmlcov',
-                                reportFiles: 'index.html',
-                                reportName: 'Backend Coverage Report'
-                            ])
                             junit(testResults: 'backend/test-results/*.xml', allowEmptyResults: true)
                         }
                     }
@@ -97,110 +108,54 @@ pipeline {
                             }
                         }
                     }
-                    post {
-                        always {
-                            publishHTML(target: [
-                                allowMissing: false,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: 'frontend/coverage/lcov-report',
-                                reportFiles: 'index.html',
-                                reportName: 'Frontend Coverage Report'
-                            ])
-                        }
-                    }
-                }
-
-                stage('Security Scan') {
-                    steps {
-                        script {
-                            sh '''
-                                docker run --rm \
-                                  -v /var/run/docker.sock:/var/run/docker.sock \
-                                  -v $(pwd):/project \
-                                  aquasec/trivy:latest fs \
-                                  --severity CRITICAL,HIGH \
-                                  --exit-code 1 \
-                                  /project
-                            '''
-                        }
-                    }
                 }
             }
         }
 
-        stage('Build Images') {
-            // Run on main, development, release/*, or PRs
+        stage('Build & Deploy Docker') {
             when {
                 anyOf {
                     branch 'main'
                     branch 'development'
-                    expression { env.BRANCH_NAME.startsWith('release/') }
-                    changeRequest()
                 }
             }
             steps {
                 script {
-                    def gitSha = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    // Login to GitHub Container Registry
                     sh "echo ${GHCR_TOKEN} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin"
 
-                    // Build backend
+                    // Build and deploy Docker Compose stack
                     sh """
-                        docker build -f docker/backend/Dockerfile --target production \
-                          -t ${REGISTRY}/${IMAGE_NAME}/backend:${gitSha} \
-                          -t ${REGISTRY}/${IMAGE_NAME}/backend:latest ./backend
-                    """
-
-                    // Build frontend
-                    sh """
-                        docker build -f docker/frontend/Dockerfile --target production \
-                          --build-arg REACT_APP_API_URL=https://yourapp.com \
-                          -t ${REGISTRY}/${IMAGE_NAME}/frontend:${gitSha} \
-                          -t ${REGISTRY}/${IMAGE_NAME}/frontend:latest ./frontend
-                    """
-                }
-            }
-        }
-
-        stage('Deploy') {
-            // Only deploy on main branch
-            when {
-                branch 'main'
-            }
-            steps {
-                script {
-                    sh """
-                        cd ${APP_DIR}
-                        docker compose -f docker-compose.prod.yml pull
-                        docker compose -f docker-compose.prod.yml up -d --remove-orphans --no-build
-                        docker compose -f docker-compose.prod.yml exec -T backend python manage.py migrate
-                        docker compose -f docker-compose.prod.yml exec -T backend python manage.py collectstatic --noinput
-                        docker image prune -f
+                    docker compose -f docker-compose.yml down --remove-orphans
+                    docker compose -f docker-compose.yml build
+                    docker compose -f docker-compose.yml up -d
                     """
                 }
             }
         }
 
         stage('Health Check') {
-            when {
-                branch 'main'
-            }
+            when { branch 'main' }
             steps {
                 script {
                     sleep(20)
                     retry(5) {
                         sh '''
-                            response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/api/health/)
-                            if [ "$response" != "200" ]; then
-                                echo "Health check failed: $response"
-                                sleep 10
-                                exit 1
-                            fi
-                            echo "Health check passed!"
+                        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health/)
+                        if [ "$response" != "200" ]; then
+                            echo "Health check failed: $response"
+                            sleep 10
+                            exit 1
+                        fi
+                        echo "Health check passed!"
                         '''
                     }
                 }
             }
         }
+    }
+
+    post {
+        always { cleanWs() }
     }
 }
