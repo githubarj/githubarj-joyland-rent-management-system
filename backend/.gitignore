@@ -36,3 +36,6 @@ __pycache__/
 
 
 
+backend/.env.dev
+backend/.env.staging
+backend/.env.prod
