@@ -2,99 +2,232 @@ pipeline {
     agent any
 
     environment {
-        PYTHON_VERSION  = '3.11'
-        NODE_VERSION    = '18'
-        APP_DIR         = "${WORKSPACE}"
-        REGISTRY        = 'ghcr.io'
-        IMAGE_NAME      = 'githubarj/githubarj-joyland-rent-management-system'
-        GITHUB_ACTOR    = 'githubarj'
-
-        DJANGO_SECRET_KEY = credentials('django-secret-key')
-        DB_NAME           = credentials('db-name')
-        DB_USER           = credentials('db-user')
-        DB_PASSWORD       = credentials('db-password')
-        GHCR_TOKEN        = credentials('ghcr-token')
-    }
-
-    triggers {
-        githubPush()
-        pollSCM('H/5 * * * *')
-    }
-
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 30, unit: 'MINUTES')
-        disableConcurrentBuilds()
-        timestamps()
+        APP_NAME = "perfect-square"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                cleanWs()
                 checkout scm
-                sh 'git log --oneline -5'
             }
         }
 
-        stage('Prepare .env') {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'django-secret-key', variable: 'DJANGO_SECRET_KEY'),
-                    string(credentialsId: 'db-name', variable: 'DB_NAME'),
-                    string(credentialsId: 'db-user', variable: 'DB_USER'),
-                    string(credentialsId: 'db-password', variable: 'DB_PASSWORD')
-                ]) {
-                    sh script: '''
-                    cat > backend/.env <<EOF
-                    DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
-                    DB_NAME=$DB_NAME
-                    DB_USER=$DB_USER
-                    DB_PASSWORD=$DB_PASSWORD
-                    DB_HOST=db
-                    DB_PORT=5432
-                    REDIS_URL=redis://redis:6379/0
-                    EOF
-                    '''
-                }
-            }
-        }
-
-        stage('Build & Deploy Docker') {
+        // ─── PR BUILD CHECK ────────────────────────────────
+        // Runs on PRs targeting main, development, release/*
+        // Builds and deploys to staging so reviewer can test
+        stage('PR - Build & Deploy to Staging') {
             when {
                 anyOf {
-                    branch 'main'
-                    branch 'development'
-                    changeRequest()
+                    changeRequest target: 'main'
+                    changeRequest target: 'development'
+                    expression {
+                        env.CHANGE_TARGET ==~ /release\/sprint-.*/
+                    }
                 }
             }
-            steps {
-                script {
-                    sh "echo ${GHCR_TOKEN} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin"
-                    sh """
-                    docker compose -f docker-compose.yml down --remove-orphans
-                    docker compose -f docker-compose.yml build
-                    docker compose -f docker-compose.yml up -d
-                    """
+            stages {
+
+                stage('Inject Staging Env') {
+                    steps {
+                        withCredentials([
+                            file(credentialsId: 'perfect-square-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh 'cp $ENV_FILE backend/.env.staging'
+                        }
+                    }
+                }
+
+                stage('Build Staging Images') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.staging.yml build \
+                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9000 \
+                                --build-arg REACT_APP_ENV=staging
+                        '''
+                    }
+                }
+
+                stage('Deploy to Staging') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.staging.yml down --remove-orphans
+                            docker compose -f docker-compose.staging.yml up -d
+                        '''
+                    }
+                }
+
+                stage('Run Migrations - Staging') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.staging.yml exec -T backend \
+                                python manage.py migrate --noinput
+                        '''
+                    }
+                }
+
+                stage('Tests') {
+                    steps {
+                        echo 'Tests will go here'
+                        // sh 'docker compose -f docker-compose.staging.yml exec -T backend python manage.py test'
+                        // sh 'docker compose -f docker-compose.staging.yml exec -T frontend yarn test'
+                    }
                 }
             }
         }
 
-        stage('Health Check') {
-            when { branch 'main' }
-            steps {
-                script {
-                    sleep(20)
-                    retry(5) {
+        // ─── DEVELOPMENT DEPLOYMENT ────────────────────────
+        // Runs on every push to development branch
+        stage('Deploy to Dev') {
+            when {
+                branch 'development'
+                not { changeRequest() }
+            }
+            stages {
+
+                stage('Inject Dev Env') {
+                    steps {
+                        withCredentials([
+                            file(credentialsId: 'perfect-square-env-dev', variable: 'ENV_FILE')
+                        ]) {
+                            sh 'cp $ENV_FILE backend/.env.dev'
+                        }
+                    }
+                }
+
+                stage('Build Dev Images') {
+                    steps {
                         sh '''
-                        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/health/)
-                        if [ "$response" != "200" ]; then
-                            echo "Health check failed: $response"
-                            sleep 10
-                            exit 1
-                        fi
-                        echo "Health check passed!"
+                            docker compose -f docker-compose.dev.yml build \
+                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:8000 \
+                                --build-arg REACT_APP_ENV=development
+                        '''
+                    }
+                }
+
+                stage('Deploy Dev') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.dev.yml down --remove-orphans
+                            docker compose -f docker-compose.dev.yml up -d
+                        '''
+                    }
+                }
+
+                stage('Run Migrations - Dev') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.dev.yml exec -T backend \
+                                python manage.py migrate --noinput
+                        '''
+                    }
+                }
+            }
+        }
+
+        // ─── RELEASE/STAGING DEPLOYMENT ────────────────────
+        // Runs on every merge/push to release/sprint-* branches
+        stage('Deploy to Staging on Release Merge') {
+            when {
+                allOf {
+                    branch pattern: 'release/sprint-.*', comparator: 'REGEXP'
+                    not { changeRequest() }
+                }
+            }
+            stages {
+
+                stage('Inject Staging Env') {
+                    steps {
+                        withCredentials([
+                            file(credentialsId: 'perfect-square-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh 'cp $ENV_FILE backend/.env.staging'
+                        }
+                    }
+                }
+
+                stage('Build Staging Images') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.staging.yml build \
+                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9000 \
+                                --build-arg REACT_APP_ENV=staging
+                        '''
+                    }
+                }
+
+                stage('Deploy Staging') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.staging.yml down --remove-orphans
+                            docker compose -f docker-compose.staging.yml up -d
+                        '''
+                    }
+                }
+
+                stage('Run Migrations - Staging') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.staging.yml exec -T backend \
+                                python manage.py migrate --noinput
+                        '''
+                    }
+                }
+            }
+        }
+
+        // ─── PRODUCTION DEPLOYMENT ─────────────────────────
+        // Runs on every push/merge to main
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+                not { changeRequest() }
+            }
+            stages {
+
+                stage('Inject Production Env') {
+                    steps {
+                        withCredentials([
+                            file(credentialsId: 'perfect-square-env-prod', variable: 'ENV_FILE')
+                        ]) {
+                            sh 'cp $ENV_FILE backend/.env.prod'
+                        }
+                    }
+                }
+
+                stage('Build Production Images') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.prod.yml build \
+                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9090 \
+                                --build-arg REACT_APP_ENV=production
+                        '''
+                    }
+                }
+
+                stage('Deploy Production') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.prod.yml down --remove-orphans
+                            docker compose -f docker-compose.prod.yml up -d
+                        '''
+                    }
+                }
+
+                stage('Run Migrations - Production') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.prod.yml exec -T backend \
+                                python manage.py migrate --noinput
+                        '''
+                    }
+                }
+
+                stage('Collect Static Files') {
+                    steps {
+                        sh '''
+                            docker compose -f docker-compose.prod.yml exec -T backend \
+                                python manage.py collectstatic --noinput
                         '''
                     }
                 }
@@ -103,8 +236,14 @@ pipeline {
     }
 
     post {
-        always {
-            cleanWs()
+        success {
+            echo "Pipeline succeeded on branch: ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "Pipeline failed on branch: ${env.BRANCH_NAME}"
+        }
+        cleanup {
+            sh 'docker image prune -f'
         }
     }
 }
