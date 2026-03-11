@@ -65,6 +65,7 @@ services:
     networks:
       - backend-network-prod
 
+
   frontend:
     build:
       context: .
