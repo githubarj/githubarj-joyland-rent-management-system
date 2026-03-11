@@ -5,7 +5,6 @@ import {
   IconPhoto,
   IconSearch,
   IconSettings,
-  IconTrash,
 } from '@tabler/icons-react';
 import React from 'react';
 import { MdLogout } from 'react-icons/md';
@@ -33,32 +32,22 @@ const UserMenu: React.FC = () => {
   };
 
   return (
-    <Indicator
-      offset={6}
-      color='green'
-      position='bottom-end'
-      size={12}
-      withBorder
-    >
-      <Menu trigger='hover' openDelay={100} closeDelay={400}>
+    <Indicator offset={6} color="green" position="bottom-end" size={12} withBorder>
+      <Menu trigger="hover" openDelay={100} closeDelay={400}>
         <Menu.Target>
-          <Avatar style={{ cursor: 'pointer' }} color='cyan' radius='xl'>
+          <Avatar style={{ cursor: 'pointer' }} color="cyan" radius="xl">
             RG
           </Avatar>
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Label>{user ? `Hello ${user.full_name}` : 'Hello'}</Menu.Label>
-          <Menu.Item leftSection={<IconSettings size={14} />}>
-            Settings
-          </Menu.Item>
-          <Menu.Item leftSection={<IconMessageCircle size={14} />}>
-            Messages
-          </Menu.Item>
+          <Menu.Item leftSection={<IconSettings size={14} />}>Settings</Menu.Item>
+          <Menu.Item leftSection={<IconMessageCircle size={14} />}>Messages</Menu.Item>
           <Menu.Item leftSection={<IconPhoto size={14} />}>Gallery</Menu.Item>
           <Menu.Item
             leftSection={<IconSearch size={14} />}
             rightSection={
-              <Text size='xs' c='dimmed'>
+              <Text size="xs" c="dimmed">
                 ⌘K
               </Text>
             }
@@ -74,7 +63,7 @@ const UserMenu: React.FC = () => {
           </Menu.Item>
           <Menu.Item
             onClick={handleLogout}
-            color='red'
+            color="red"
             leftSection={<MdLogout size={14} />}
           >
             Logout

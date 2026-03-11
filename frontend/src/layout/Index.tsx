@@ -1,14 +1,6 @@
 import React, { useEffect } from 'react';
 import '@mantine/core/styles.css';
-import {
-  Affix,
-  AppShell,
-  Button,
-  Center,
-  Flex,
-  Loader,
-  Transition,
-} from '@mantine/core';
+import { Affix, AppShell, Button, Center, Loader, Transition } from '@mantine/core';
 import { useDisclosure, useWindowScroll } from '@mantine/hooks';
 import AppHeader from './Components/Header/AppHeader';
 import Navbar from './Components/Navbar/Navbar';
@@ -18,7 +10,6 @@ import { Outlet } from 'react-router-dom';
 import { FaArrowUpLong } from 'react-icons/fa6';
 import { fetchCurrentUser } from '../api/services/_auth.service';
 import { useLoadingStore } from '../store/useLoadingStore';
-import { showNotification } from '@mantine/notifications';
 
 const AppLayout: React.FC = () => {
   const [open, { toggle }] = useDisclosure();
@@ -37,7 +28,7 @@ const AppLayout: React.FC = () => {
     <AppShell
       header={{ height: 55 }}
       footer={{ height: 45 }}
-      layout='alt'
+      layout="alt"
       withBorder={true}
       navbar={{
         width: 200,
@@ -49,10 +40,10 @@ const AppLayout: React.FC = () => {
       <Navbar open={open} toggle={toggle} />
       <AppShell.Main className={layout.main}>
         <Affix position={{ bottom: 5, right: 20 }}>
-          <Transition transition='slide-up' mounted={scroll.y > 0}>
+          <Transition transition="slide-up" mounted={scroll.y > 0}>
             {(transitionStyles) => (
               <Button
-                size='xs'
+                size="xs"
                 leftSection={<FaArrowUpLong width={16} />}
                 style={transitionStyles}
                 onClick={() => scrollTo({ y: 0 })}
@@ -63,7 +54,7 @@ const AppLayout: React.FC = () => {
           </Transition>
         </Affix>
         {loading['user'] ? (
-          <Center h='100%' style={{ minHeight: '80vh' }}>
+          <Center h="100%" style={{ minHeight: '80vh' }}>
             <Loader size={64} />
           </Center>
         ) : (

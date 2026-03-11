@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 import {
@@ -29,8 +29,6 @@ const InvoiceTable: React.FC = () => {
   const [dataSource, setDataSource] = useState<ReactNode[][]>([]);
   const { goTo } = useCustomNavigation();
 
- 
-
   const tableHeaders: string[] = [
     '#',
     'HOUSE NUMBER',
@@ -52,7 +50,7 @@ const InvoiceTable: React.FC = () => {
       <Text> {dayjs(item.issueDate).format('Do MMMM YYYY')} </Text>,
       <div>
         {item.balance <= 0 ? (
-          <Badge color='green' variant='light'>
+          <Badge color="green" variant="light">
             Paid
           </Badge>
         ) : (
@@ -62,22 +60,18 @@ const InvoiceTable: React.FC = () => {
       <Text>{item.type} </Text>,
       <Flex gap={'xs'} align={'center'}>
         <Tooltip label={'view'}>
-          <UnstyledButton
-            onClick={() => goTo({ to: '/invoicing/invoice-page' })}
-          >
-            <MdOutlineRemoveRedEye color='green' />
+          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-page' })}>
+            <MdOutlineRemoveRedEye color="green" />
           </UnstyledButton>
         </Tooltip>
         <Tooltip label={'edit'}>
-          <UnstyledButton
-            onClick={() => goTo({ to: '/invoicing/invoice-page' })}
-          >
-            <MdOutlineModeEdit color='blue' />
+          <UnstyledButton onClick={() => goTo({ to: '/invoicing/invoice-page' })}>
+            <MdOutlineModeEdit color="blue" />
           </UnstyledButton>
         </Tooltip>
         <Tooltip label={'delete'}>
           <UnstyledButton>
-            <MdDeleteOutline color='red' />
+            <MdDeleteOutline color="red" />
           </UnstyledButton>
         </Tooltip>
       </Flex>,
@@ -94,14 +88,14 @@ const InvoiceTable: React.FC = () => {
   };
 
   return (
-    <Paper shadow='xs' radius={5} mb={20}>
-      <Grid px={15} py={20} display={'flex'} justify='space-between'>
+    <Paper shadow="xs" radius={5} mb={20}>
+      <Grid px={15} py={20} display={'flex'} justify="space-between">
         <Grid.Col span={'content'}>
-          <MultiSelect placeholder='Action' data={['Pending', 'paid']} />
+          <MultiSelect placeholder="Action" data={['Pending', 'paid']} />
         </Grid.Col>
         <Grid.Col span={'content'}>
           <Flex gap={'md'}>
-            <Input placeholder='Search  Invoice' />
+            <Input placeholder="Search  Invoice" />
             <Button onClick={createInvoice}>Create invoice </Button>
           </Flex>
         </Grid.Col>
