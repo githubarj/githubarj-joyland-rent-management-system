@@ -33,10 +33,7 @@ pipeline {
                             file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
                             sh '''
-                                ls -la
-                                ls -la backend/ || echo "backend folder does not exist"
-                                whoami
-                                mkdir -p backend
+                                rm -f backend/.env.staging
                                 cp $ENV_FILE backend/.env.staging
                                 chmod 600 backend/.env.staging
                             '''
@@ -97,7 +94,7 @@ pipeline {
                             file(credentialsId: 'joyland-env-dev', variable: 'ENV_FILE')
                         ]) {
                             sh '''
-                                mkdir -p backend
+                                rm -f backend/.env.dev
                                 cp $ENV_FILE backend/.env.dev
                                 chmod 600 backend/.env.dev
                             '''
@@ -152,7 +149,7 @@ pipeline {
                             file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
                             sh '''
-                                mkdir -p backend
+                                rm -f backend/.env.staging
                                 cp $ENV_FILE backend/.env.staging
                                 chmod 600 backend/.env.staging
                             '''
@@ -205,7 +202,7 @@ pipeline {
                             file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
                         ]) {
                             sh '''
-                                mkdir -p backend
+                                rm -f backend/.env.prod
                                 cp $ENV_FILE backend/.env.prod
                                 chmod 600 backend/.env.prod
                             '''
