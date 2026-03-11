@@ -32,7 +32,11 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
-                            sh 'cp $ENV_FILE backend/.env.staging'
+                            sh '''
+                                mkdir -p backend
+                                cp $ENV_FILE backend/.env.staging
+                                chmod 600 backend/.env.staging
+                            '''
                         }
                     }
                 }
@@ -89,7 +93,11 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'joyland-env-dev', variable: 'ENV_FILE')
                         ]) {
-                            sh 'cp $ENV_FILE backend/.env.dev'
+                            sh '''
+                                mkdir -p backend
+                                cp $ENV_FILE backend/.env.dev
+                                chmod 600 backend/.env.dev
+                            '''
                         }
                     }
                 }
@@ -140,7 +148,11 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
-                            sh 'cp $ENV_FILE backend/.env.staging'
+                            sh '''
+                                mkdir -p backend
+                                cp $ENV_FILE backend/.env.staging
+                                chmod 600 backend/.env.staging
+                            '''
                         }
                     }
                 }
@@ -189,7 +201,11 @@ pipeline {
                         withCredentials([
                             file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
                         ]) {
-                            sh 'cp $ENV_FILE backend/.env.prod'
+                            sh '''
+                                mkdir -p backend
+                                cp $ENV_FILE backend/.env.prod
+                                chmod 600 backend/.env.prod
+                            '''
                         }
                     }
                 }
