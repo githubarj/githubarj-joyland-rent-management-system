@@ -1,8 +1,5 @@
-
 # STAGE 1: Base
-
-FROM python:3.10-alpine3.22 AS base
-
+FROM python:3.10-alpine AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -10,15 +7,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
+RUN apk add --no-cache \
+    postgresql-dev \
     gcc \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    musl-dev \
+    curl
 
 # STAGE 2: Development
-
 FROM base AS development
 
 COPY requirements/ requirements/
@@ -30,19 +25,16 @@ EXPOSE 8000
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
-
 # STAGE 3: Production
-
 FROM base AS production
 
 COPY requirements/ requirements/
-
 RUN pip install --no-cache-dir -r requirements/prod.txt
 
 COPY . .
 
-RUN addgroup --system django \
-    && adduser --system --ingroup django django
+RUN addgroup -S django \
+    && adduser -S -G django django
 
 RUN chown -R django:django /app
 
