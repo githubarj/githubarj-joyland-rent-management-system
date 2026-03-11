@@ -18,9 +18,8 @@ pipeline {
         // Builds and deploys to staging so reviewer can test
         stage('PR - Build & Deploy to Staging') {
             when {
-                anyOf {
-                    changeRequest target: 'main'
-                    changeRequest target: 'development'
+                allOf {
+                    changeRequest()
                     expression {
                         env.CHANGE_TARGET ==~ /release\/sprint-.*/
                     }
