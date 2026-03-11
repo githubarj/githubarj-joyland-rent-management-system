@@ -33,6 +33,9 @@ pipeline {
                             file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
                             sh '''
+                                ls -la
+                                ls -la backend/ || echo "backend folder does not exist"
+                                whoami
                                 mkdir -p backend
                                 cp $ENV_FILE backend/.env.staging
                                 chmod 600 backend/.env.staging
