@@ -303,6 +303,13 @@ pipeline {
             echo "Pipeline failed on branch: ${env.BRANCH_NAME}"
         }
         cleanup {
+            script {
+                if (env.CHANGE_ID) {
+                    withCredentials([file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')]) {
+                        sh "docker compose --env-file $ENV_FILE -f docker-compose.staging.yml down --remove-orphans || true"
+                    }
+                }
+            }
             sh 'docker image prune -f'
         }
     }
