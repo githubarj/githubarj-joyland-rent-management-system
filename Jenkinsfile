@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = "perfect-square"
+        APP_NAME = "joyland"
     }
 
     stages {
@@ -30,7 +30,7 @@ pipeline {
                 stage('Inject Staging Env') {
                     steps {
                         withCredentials([
-                            file(credentialsId: 'perfect-square-env-staging', variable: 'ENV_FILE')
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
                             sh 'cp $ENV_FILE backend/.env.staging'
                         }
@@ -87,7 +87,7 @@ pipeline {
                 stage('Inject Dev Env') {
                     steps {
                         withCredentials([
-                            file(credentialsId: 'perfect-square-env-dev', variable: 'ENV_FILE')
+                            file(credentialsId: 'joyland-env-dev', variable: 'ENV_FILE')
                         ]) {
                             sh 'cp $ENV_FILE backend/.env.dev'
                         }
@@ -138,7 +138,7 @@ pipeline {
                 stage('Inject Staging Env') {
                     steps {
                         withCredentials([
-                            file(credentialsId: 'perfect-square-env-staging', variable: 'ENV_FILE')
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
                         ]) {
                             sh 'cp $ENV_FILE backend/.env.staging'
                         }
@@ -187,7 +187,7 @@ pipeline {
                 stage('Inject Production Env') {
                     steps {
                         withCredentials([
-                            file(credentialsId: 'perfect-square-env-prod', variable: 'ENV_FILE')
+                            file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
                         ]) {
                             sh 'cp $ENV_FILE backend/.env.prod'
                         }
