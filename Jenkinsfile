@@ -14,8 +14,6 @@ pipeline {
         }
 
         // ─── PR BUILD CHECK ────────────────────────────────
-        // Runs on PRs targeting main, development, release/*
-        // Builds and deploys to staging so reviewer can test
         stage('PR - Build & Deploy to Staging') {
             when {
                 allOf {
@@ -43,44 +41,53 @@ pipeline {
 
                 stage('Build Staging Images') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.staging.yml build \
-                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9000 \
-                                --build-arg REACT_APP_ENV=staging
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml build \
+                                    --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9000 \
+                                    --build-arg REACT_APP_ENV=staging
+                            '''
+                        }
                     }
                 }
 
                 stage('Deploy to Staging') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.staging.yml down --remove-orphans
-                            docker compose -f docker-compose.staging.yml up -d
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml down --remove-orphans
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml up -d
+                            '''
+                        }
                     }
                 }
 
                 stage('Run Migrations - Staging') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.staging.yml exec -T backend \
-                                python manage.py migrate --noinput
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml exec -T backend \
+                                    python manage.py migrate --noinput
+                            '''
+                        }
                     }
                 }
 
                 stage('Tests') {
                     steps {
                         echo 'Tests will go here'
-                        // sh 'docker compose -f docker-compose.staging.yml exec -T backend python manage.py test'
-                        // sh 'docker compose -f docker-compose.staging.yml exec -T frontend yarn test'
                     }
                 }
             }
         }
 
         // ─── DEVELOPMENT DEPLOYMENT ────────────────────────
-        // Runs on every push to development branch
         stage('Deploy to Dev') {
             when {
                 branch 'development'
@@ -104,36 +111,47 @@ pipeline {
 
                 stage('Build Dev Images') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.dev.yml build \
-                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:8000 \
-                                --build-arg REACT_APP_ENV=development
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-dev', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.dev.yml build \
+                                    --build-arg REACT_APP_API_URL=http://${SERVER_IP}:8000 \
+                                    --build-arg REACT_APP_ENV=development
+                            '''
+                        }
                     }
                 }
 
                 stage('Deploy Dev') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.dev.yml down --remove-orphans
-                            docker compose -f docker-compose.dev.yml up -d
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-dev', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.dev.yml down --remove-orphans
+                                docker compose --env-file $ENV_FILE -f docker-compose.dev.yml up -d
+                            '''
+                        }
                     }
                 }
 
                 stage('Run Migrations - Dev') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.dev.yml exec -T backend \
-                                python manage.py migrate --noinput
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-dev', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.dev.yml exec -T backend \
+                                    python manage.py migrate --noinput
+                            '''
+                        }
                     }
                 }
             }
         }
 
         // ─── RELEASE/STAGING DEPLOYMENT ────────────────────
-        // Runs on every merge/push to release/sprint-* branches
         stage('Deploy to Staging on Release Merge') {
             when {
                 allOf {
@@ -159,36 +177,47 @@ pipeline {
 
                 stage('Build Staging Images') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.staging.yml build \
-                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9000 \
-                                --build-arg REACT_APP_ENV=staging
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml build \
+                                    --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9000 \
+                                    --build-arg REACT_APP_ENV=staging
+                            '''
+                        }
                     }
                 }
 
                 stage('Deploy Staging') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.staging.yml down --remove-orphans
-                            docker compose -f docker-compose.staging.yml up -d
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml down --remove-orphans
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml up -d
+                            '''
+                        }
                     }
                 }
 
                 stage('Run Migrations - Staging') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.staging.yml exec -T backend \
-                                python manage.py migrate --noinput
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml exec -T backend \
+                                    python manage.py migrate --noinput
+                            '''
+                        }
                     }
                 }
             }
         }
 
         // ─── PRODUCTION DEPLOYMENT ─────────────────────────
-        // Runs on every push/merge to main
         stage('Deploy to Production') {
             when {
                 branch 'main'
@@ -212,38 +241,54 @@ pipeline {
 
                 stage('Build Production Images') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.prod.yml build \
-                                --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9090 \
-                                --build-arg REACT_APP_ENV=production
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.prod.yml build \
+                                    --build-arg REACT_APP_API_URL=http://${SERVER_IP}:9090 \
+                                    --build-arg REACT_APP_ENV=production
+                            '''
+                        }
                     }
                 }
 
                 stage('Deploy Production') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.prod.yml down --remove-orphans
-                            docker compose -f docker-compose.prod.yml up -d
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.prod.yml down --remove-orphans
+                                docker compose --env-file $ENV_FILE -f docker-compose.prod.yml up -d
+                            '''
+                        }
                     }
                 }
 
                 stage('Run Migrations - Production') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.prod.yml exec -T backend \
-                                python manage.py migrate --noinput
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.prod.yml exec -T backend \
+                                    python manage.py migrate --noinput
+                            '''
+                        }
                     }
                 }
 
                 stage('Collect Static Files') {
                     steps {
-                        sh '''
-                            docker compose -f docker-compose.prod.yml exec -T backend \
-                                python manage.py collectstatic --noinput
-                        '''
+                        withCredentials([
+                            file(credentialsId: 'joyland-env-prod', variable: 'ENV_FILE')
+                        ]) {
+                            sh '''
+                                docker compose --env-file $ENV_FILE -f docker-compose.prod.yml exec -T backend \
+                                    python manage.py collectstatic --noinput
+                            '''
+                        }
                     }
                 }
             }
