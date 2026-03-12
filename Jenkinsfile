@@ -53,18 +53,6 @@ pipeline {
                     }
                 }
 
-                stage('Deploy to Staging') {
-                    steps {
-                        withCredentials([
-                            file(credentialsId: 'joyland-env-staging', variable: 'ENV_FILE')
-                        ]) {
-                            sh '''
-                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml down --remove-orphans
-                                docker compose --env-file $ENV_FILE -f docker-compose.staging.yml up -d
-                            '''
-                        }
-                    }
-                }
 
                 stage('Run Migrations - Staging') {
                     steps {
@@ -238,6 +226,7 @@ pipeline {
                         }
                     }
                 }
+
 
                 stage('Build Production Images') {
                     steps {
