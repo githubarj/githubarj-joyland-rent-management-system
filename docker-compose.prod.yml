@@ -7,6 +7,7 @@ networks:
 volumes:
   postgres_data_prod:
   redis_data_prod:
+  static_files_prod:
 
 services:
 
@@ -48,6 +49,8 @@ services:
     restart: unless-stopped
     ports:
       - "9090:8000"
+    volumes:
+      - static_files_prod:/app/staticfiles
     env_file:
       - ./backend/.env.prod
     environment:
@@ -69,7 +72,9 @@ services:
       target: production
     restart: unless-stopped
     ports:
-      - "90:90"
+      - "90:8080"
+    volumes:
+      - static_files_prod:/usr/share/nginx/html/django-static
     environment:
       REACT_APP_API_URL: http://localhost:9090
       REACT_APP_ENV: production
