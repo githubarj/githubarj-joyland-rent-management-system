@@ -25,7 +25,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 RUN addgroup -S django \
     && adduser -S -G django django
-RUN chown -R django:django /app
+RUN mkdir -p /app/staticfiles \
+    && chown -R django:django /app
 USER django
 EXPOSE 8000
 CMD ["gunicorn", \
