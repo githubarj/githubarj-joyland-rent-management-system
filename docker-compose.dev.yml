@@ -73,12 +73,13 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "5174:5174"
+      - "5174:5173"
     environment:
-      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_API_URL: http://178.104.38.211:8000
       REACT_APP_ENV: development
       CHOKIDAR_USEPOLLING: true
       WATCHPACK_POLLING: true
+      VITE_HOST: 0.0.0.0
     depends_on:
       - backend
     networks:

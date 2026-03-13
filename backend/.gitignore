@@ -37,5 +37,4 @@ __pycache__/
 
 
 .env.dev
-.env.staging
 .env.prod
