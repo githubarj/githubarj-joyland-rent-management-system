@@ -64,16 +64,6 @@ pipeline {
         }
 
 
-        // ─── CLEANUP OLD CONTAINERS ────────────────────────
-        stage('Cleanup Old Containers') {
-            steps {
-                sh '''
-                    docker container prune -f
-                    docker container prune -f --filter "until=24h"
-                '''
-            }
-        }
-
         // ─── DEVELOPMENT DEPLOYMENT ────────────────────────
         stage('Deploy to Dev') {
             when {
