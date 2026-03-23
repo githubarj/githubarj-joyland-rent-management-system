@@ -6,7 +6,7 @@ interface LoadingState {
 }
 
 export const useLoadingStore = create<LoadingState>((set) => ({
-  loading: {},
+  loading: { user: true },
   setLoading: (key, value) =>
     set((state) => ({
       loading: { ...state.loading, [key]: value },
