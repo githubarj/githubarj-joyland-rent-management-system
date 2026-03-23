@@ -30,9 +30,7 @@ const verifyEmail = async (
 ): Promise<ApiResponse | null> => {
   setLoading('verify-email', true);
   try {
-    const response = await query.get(
-      `${authEndpoints.verifyEmail}${uid}/${token}/`
-    );
+    const response = await query.get(`${authEndpoints.verifyEmail}${uid}/${token}/`);
     return response.data;
   } catch (error) {
     console.error('Verification Error', error);
@@ -48,7 +46,8 @@ const login = async (data: {
 }): Promise<ApiResponse | null> => {
   setLoading('login', true);
   try {
-    const response = await query.post(authEndpoints.login, data);
+    const res = await query.post(authEndpoints.login, data);
+    const response = res.data;
     localStorage.setItem('access_token', response.data.access);
     localStorage.setItem('refresh_token', response.data.refresh);
     return response.data;
@@ -112,9 +111,7 @@ const refreshAccessToken = (): {
   };
 };
 
-const logout = async (data: {
-  refresh?: string;
-}): Promise<ApiResponse | null> => {
+const logout = async (data: { refresh?: string }): Promise<ApiResponse | null> => {
   setLoading('logout', true);
   try {
     const response = await query.post(authEndpoints.logout, data);
@@ -128,11 +125,4 @@ const logout = async (data: {
   }
 };
 
-export {
-  register,
-  refreshAccessToken,
-  login,
-  verifyEmail,
-  fetchCurrentUser,
-  logout,
-};
+export { register, refreshAccessToken, login, verifyEmail, fetchCurrentUser, logout };
