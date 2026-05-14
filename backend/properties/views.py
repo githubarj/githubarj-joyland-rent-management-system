@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from .models import Property, Unit, Lease
 from .serializers import PropertySerializer, UnitSerializer, LeaseSerializer
 from users.permissions import IsAuthenticatedAndActive
-from user.utils import api_response
+from users.utils import api_response
 
 class PropertyViewSet(viewsets.ModelViewSet):
     serializer_class = PropertySerializer
