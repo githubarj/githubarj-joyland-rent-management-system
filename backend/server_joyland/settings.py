@@ -173,4 +173,4 @@ AUTHENTICATION_BACKENDS = [
 
 EMAIL_BACKEND = config("EMAIL_BACKEND")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@rentms.local")
-FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5173")
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:5174")
