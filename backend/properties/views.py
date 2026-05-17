@@ -10,6 +10,39 @@ from .serializers import PropertySerializer, UnitSerializer, LeaseSerializer
 from users.permissions import IsAuthenticatedAndActive
 from users.utils import api_response
 
+from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
+from users.models import PropertyManager
+from .access import user_has_permission, user_can_access_property_id
+
+PROPERTY_PERMISSION_MAP = {
+    "list": "can_view_properties",
+    "retrieve": "can_view_properties",
+    "create": "can_manage_properties",
+    "update": "can_manage_properties",
+    "partial_update": "can_manage_properties",
+    "destroy": "can_manage_properties",
+}
+
+UNIT_PERMISSION_MAP = {
+    "list": "can_view_units",
+    "retrieve": "can_view_units",
+    "create": "can_manage_units",
+    "update": "can_manage_units",
+    "partial_update": "can_manage_units",
+    "destroy": "can_manage_units",
+}
+
+LEASE_PERMISSION_MAP = {
+    "list": "can_view_leases",
+    "retrieve": "can_view_leases",
+    "create": "can_manage_leases",
+    "update": "can_manage_leases",
+    "partial_update": "can_manage_leases",
+    "destroy": "can_manage_leases",
+}
+
+
 class PropertyViewSet(viewsets.ModelViewSet):
     serializer_class = PropertySerializer
     permission_classes = [IsAuthenticatedAndActive]
