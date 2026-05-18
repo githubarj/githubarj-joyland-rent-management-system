@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.forms import ValidationError
 from django.utils import timezone
+from django.db.models import Q
 
 User = settings.AUTH_USER_MODEL
 
@@ -51,7 +52,7 @@ class UserManager(BaseUserManager):
     def get_queryset(self):
         # Exclude soft-deleted users by default
         return super().get_queryset().filter(deleted_at__isnull=True)
-    
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
@@ -75,7 +76,7 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel ):
     surname = models.CharField(max_length=100)
     other_names = models.CharField(max_length=100, blank=True,null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
-    
+
     # Roles
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
@@ -114,7 +115,7 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel ):
         if hasattr(self, "manager_profile"):
             return getattr(self.manager_profile, "landlord_profile", None)
         return None
-    
+
     def __str__(self):
         role = "Tenant" if self.is_tenant else "Manager" if self.is_manager else "User"
         return f"{self.email} ({role})"
@@ -129,7 +130,7 @@ class ManagerProfile(models.Model):
     def clean(self):
         if not self.user.is_manager:
             raise ValidationError("User must have is_manager=True to create a ManagerProfile")
-    
+
     def __str__(self):
         return f"{self.user.email} ({self.role})"
 
@@ -151,7 +152,7 @@ class TenantProfile(SoftDeleteModel):
     def clean(self):
         if not self.user.is_tenant:
             raise ValidationError("User must have is_tenant=True to create a TenantProfile")
-        
+
     def __str__(self):
         return f"TenantProfile for {self.user.email}"
 
@@ -223,7 +224,7 @@ class PropertyManager(SoftDeleteModel):
         indexes = [
             models.Index(fields=["user"], name="idx_property_manager_user")
         ]
-    
+
     def __str__(self):
         return f"{self.user.email} ({self.role})"
         # return f"{self.user.email} ({self.role}) for {self.property}"
@@ -240,7 +241,7 @@ class Permission(models.Model):
         return self.code
 
 class RolePermission(models.Model):
-    """Default permissions granted to roles (from ManagerProfile.role)""" 
+    """Default permissions granted to roles (from ManagerProfile.role)"""
     role = models.CharField(max_length=50, choices=ROLE_CHOICES)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="role_assignements")
 
@@ -254,15 +255,30 @@ class UserPermission(models.Model):
     """Overrides at user level (can be global or property-scoped)"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="custom_permissions")
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="user_assignment")
-    # property = models.ForeignKey("properties.Property", null=True, blank=True,
-    #                              on_delete=models.CASCADE, related_name="user_permissions")
-    
-    # class Meta:
-    #     unique_together = ("user", "permission", "property")
-    
-    def __str__(self):
-        # scope = f" for {self.property}" if self.property else " (global)"
-        # return f"{self.user.email} → {self.permission.code}{scope}" 
-        return f"{self.user.email} → {self.permission.code}" 
+    property = models.ForeignKey(
+        "properties.Property",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="user_permissions",
+    )
 
-    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "permission"],
+                condition=Q(property__isnull=True),
+                name="uniq_global_user_permission",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "permission", "property"],
+                condition=Q(property__isnull=False),
+                name="uniq_property_user_permission",
+            ),
+        ]
+
+    def __str__(self):
+        scope = f" for property {self.property_id}" if self.property_id else " globally"
+        return f"{self.user.email} -> {self.permission.code}{scope}"
