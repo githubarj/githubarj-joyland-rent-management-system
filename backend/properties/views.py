@@ -128,17 +128,52 @@ class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         # FIX: Added required positional arguments to bypass wrapper parameter issues
         return api_response(True, "Properties fetched successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Create property", request_body=PropertySerializer, tags=["Properties"])
     def create(self, request, *args, **kwargs):
         self.check_dynamic_permission()
+        user = request.user
 
-        if not (request.user.is_superuser or getattr(request.user, "is_admin", False)):
+        # 1. Isolate Non-Admins / Non-Superusers
+        if not (user.is_superuser or getattr(user, "is_admin", False)):
             landlord_id = request.data.get("landlord")
-            if landlord_id and int(landlord_id) != request.user.id:
-                raise PermissionDenied(_("You can only create properties under your own landlord account."))
+
+            if landlord_id:
+                # FIX: Your excellent sanitation check
+                if not str(landlord_id).isdigit():
+                    raise ValidationError({"landlord": _("Invalid landlord ID format.")})
+
+                if int(landlord_id) != user.id:
+                    raise PermissionDenied(
+                        _("You can only create properties under your own landlord account.")
+                    )
+
+            # 2. AUTOMATION INJECTION: If the frontend omitted their own ID,
+            # we inject it into request.data so the serializer doesn't complain it's missing.
+            else:
+                request.data._mutable = True  # Allows modifying QueryDict if incoming data is form-data
+                request.data["landlord"] = user.id
+
+        # 3. Handle Admin Fallbacks
+        else:
+            if not request.data.get("landlord"):
+                raise ValidationError({"landlord": _("Admins must explicitly assign a landlord ID.")})
 
         response = super().create(request, *args, **kwargs)
-        return api_response(True, "Property created successfully", response.data, status.HTTP_201_CREATED)
+        return api_response(
+            True,
+            "Property created successfully",
+            response.data,
+            status.HTTP_201_CREATED,
+        )
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        # Safe fallback implementation matching your architecture approach
+        if user.is_superuser or getattr(user, "is_admin", False):
+            serializer.save()
+        else:
+            serializer.save(landlord=user)
+
 
     @swagger_auto_schema(operation_summary="Retrieve property", tags=["Properties"])
     def retrieve(self, request, *args, **kwargs):
