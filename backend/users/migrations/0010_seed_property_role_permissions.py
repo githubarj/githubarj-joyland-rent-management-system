@@ -43,11 +43,15 @@ def seed_role_permissions(apps, schema_editor):
         for code in permission_codes:
             permission = Permission.objects.filter(code=code).first()
 
-            if permission:
-                RolePermission.objects.get_or_create(
-                    role=role,
-                    permission=permission,
-                )
+            # DEBUG PRINT: This will print out to your docker logs so you can see if it's found
+            if not permission:
+                print(f"⚠️ WARNING: Permission code '{code}' was not found in the database!")
+                continue
+
+            RolePermission.objects.get_or_create(
+                role=role,
+                permission=permission,
+            )
 
 def remove_role_permissions(apps, schema_editor):
     Permission = apps.get_model("users", "Permission")
@@ -70,7 +74,6 @@ class Migration(migrations.Migration):
     dependencies = [
         # Replace these with your actual latest migration names if different.
         ('users', '0009_seed_initial_permissions'),
-        ("properties", "0002_seed_property_permissions"),
     ]
 
     operations = [
