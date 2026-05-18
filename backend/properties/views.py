@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from django.utils.translation import gettext_lazy as _
-from rest_framework.exceptions import ValidationError
 
 from .models import Property, Unit, Lease
 from .serializers import PropertySerializer, UnitSerializer, LeaseSerializer
@@ -14,6 +13,11 @@ from django.db.models import Q
 from rest_framework.exceptions import PermissionDenied
 from users.models import PropertyManager
 from .access import user_has_permission, user_can_access_property_id
+
+from django.db import transaction
+from django.utils.translation import gettext_lazy as _
+from drf_yasg import openapi
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 PROPERTY_PERMISSION_MAP = {
     "list": "can_view_properties",
@@ -43,15 +47,38 @@ LEASE_PERMISSION_MAP = {
 }
 
 
-class PropertyViewSet(viewsets.ModelViewSet):
+# Assumes these constants and mixins are imported from your custom security framework
+# from core.permissions import DynamicPermissionMixin, IsAuthenticatedAndActive
+# from core.constants import PROPERTY_PERMISSION_MAP
+
+class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
     serializer_class = PropertySerializer
     permission_classes = [IsAuthenticatedAndActive]
+    permission_map = PROPERTY_PERMISSION_MAP
 
     def get_queryset(self):
-        # FIX: Added missing '=True' to the isnull lookup
-        # OPTIMIZATION: Moved select_related here to group DB setup together
-        queryset = Property.objects.filter(deleted_at__isnull=True).select_related("landlord")
+        user = self.request.user
 
+        # Base optimization: Prevent N+1 queries by attaching related objects from the start
+        base_queryset = Property.objects.filter(deleted_at__isnull=True).select_related("landlord")
+
+        # 1. Multi-Tenant Role Isolation Strategy
+        if user.is_superuser or getattr(user, "is_admin", False):
+            scoped_queryset = base_queryset
+        elif getattr(user, "is_manager", False):
+            scoped_queryset = base_queryset.filter(
+                Q(landlord=user) |
+                Q(
+                    managers__user=user,
+                    managers__is_active=True,
+                    managers__deleted_at__isnull=True,
+                )
+            ).distinct()
+        else:
+            # Tenants or basic authenticated users see nothing by default on this endpoint
+            scoped_queryset = Property.objects.none()
+
+        # 2. Extract and Sanitize Parameters Safely
         params = self.request.query_params
         city = params.get("city")
         is_active = params.get("is_active")
@@ -59,28 +86,31 @@ class PropertyViewSet(viewsets.ModelViewSet):
         search = params.get("search")
 
         if city:
-            queryset = queryset.filter(city__icontains=city)
+            scoped_queryset = scoped_queryset.filter(city__icontains=city)
 
         if is_active is not None:
-            # FIX: Explicitly checks for true strings to prevent false-negative filtering
-            queryset = queryset.filter(is_active=is_active.lower() in ["true", "1"])
+            # FIX: Explicit boolean string evaluation prevents unintended records exclusions
+            scoped_queryset = scoped_queryset.filter(is_active=is_active.lower() in ["true", "1"])
 
         if landlord:
-            # VALIDATION: Prevents database ValueError crashes from malformed strings
+            # VALIDATION: Prevents DB ValueError crashes if strings hit integer fields
             if not landlord.isdigit():
                 raise ValidationError({"landlord": _("Invalid landlord ID format.")})
-            queryset = queryset.filter(landlord_id=landlord)
+            scoped_queryset = scoped_queryset.filter(landlord_id=landlord)
 
         if search:
-            queryset = queryset.filter(name__icontains=search)
+            scoped_queryset = scoped_queryset.filter(name__icontains=search)
 
-        return queryset.order_by("-created_at")
+        return scoped_queryset.order_by("-created_at")
 
     @swagger_auto_schema(
         operation_summary="List properties",
         tags=["Properties"],
     )
     def list(self, request, *args, **kwargs):
+        # SECURITYHOOK: Enforce dynamic lookup validation
+        self.check_dynamic_permission()
+
         response = super().list(request, *args, **kwargs)
         return api_response(
             True,
@@ -95,6 +125,14 @@ class PropertyViewSet(viewsets.ModelViewSet):
         tags=["Properties"],
     )
     def create(self, request, *args, **kwargs):
+        self.check_dynamic_permission()
+
+        # Non-admins should not create properties for someone else
+        if not (request.user.is_superuser or getattr(request.user, "is_admin", False)):
+            landlord_id = request.data.get("landlord")
+            if landlord_id and int(landlord_id) != request.user.id:
+                raise PermissionDenied(_("You can only create properties under your own landlord account."))
+
         response = super().create(request, *args, **kwargs)
         return api_response(
             True,
@@ -108,6 +146,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
         tags=["Properties"],
     )
     def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+
         response = super().retrieve(request, *args, **kwargs)
         return api_response(
             True,
@@ -122,6 +163,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
         tags=["Properties"],
     )
     def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+
         response = super().update(request, *args, **kwargs)
         return api_response(
             True,
@@ -136,6 +180,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
         tags=["Properties"],
     )
     def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+
         response = super().partial_update(request, *args, **kwargs)
         return api_response(
             True,
@@ -149,9 +196,10 @@ class PropertyViewSet(viewsets.ModelViewSet):
         tags=["Properties"],
     )
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.soft_delete()
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
 
+        obj.soft_delete()
         return api_response(
             True,
             "Property deleted successfully",
@@ -159,11 +207,6 @@ class PropertyViewSet(viewsets.ModelViewSet):
             status.HTTP_200_OK,
         )
 
-
-from django.db import transaction
-from django.utils.translation import gettext_lazy as _
-from rest_framework import viewsets, status
-from rest_framework.exceptions import ValidationError
 
 # Define custom API responses or mixins if you wish to eliminate repeated boilerplate method overrides completely.
 
