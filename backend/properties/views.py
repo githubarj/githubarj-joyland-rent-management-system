@@ -19,6 +19,7 @@ from django.utils.translation import gettext_lazy as _
 from drf_yasg import openapi
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+
 PROPERTY_PERMISSION_MAP = {
     "list": "can_view_properties",
     "retrieve": "can_view_properties",
@@ -47,20 +48,26 @@ LEASE_PERMISSION_MAP = {
 }
 
 
-# Assumes these constants and mixins are imported from your custom security framework
-# from core.permissions import DynamicPermissionMixin, IsAuthenticatedAndActive
-# from core.constants import PROPERTY_PERMISSION_MAP
+class DynamicPermissionMixin:
+    permission_map = {}
 
-from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status, viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
+    def get_required_permission(self):
+        return self.permission_map.get(getattr(self, "action", None))
 
-# Assumes custom helpers, mixins, and constants are imported correctly
-# from .utils import user_can_access_property_id
-# from core.permissions import DynamicPermissionMixin, IsAuthenticatedAndActive
-# from core.constants import PROPERTY_PERMISSION_MAP
+    def check_dynamic_permission(self, property_id=None):
+        required_permission = self.get_required_permission()
+
+        if not required_permission:
+            return
+
+        if not user_has_permission(
+            self.request.user,
+            required_permission,
+            property_id=property_id,
+        ):
+            raise PermissionDenied(
+                f"You do not have permission to perform this action: {required_permission}"
+            )
 
 class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
     serializer_class = PropertySerializer
@@ -162,17 +169,6 @@ class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         return api_response(True, "Property deleted successfully", None, status.HTTP_200_OK)
 
 
-
-from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status, viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
-
-# Assumes custom helpers, mixins, and constants are imported correctly
-# from .utils import user_can_access_property_id
-# from core.permissions import DynamicPermissionMixin, IsAuthenticatedAndActive
-# from core.constants import UNIT_PERMISSION_MAP
 
 class UnitViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
     serializer_class = UnitSerializer
@@ -282,17 +278,6 @@ class UnitViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         obj.soft_delete()
         return api_response(True, "Unit deleted successfully", None, status.HTTP_200_OK)
 
-from django.db import transaction
-from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status, viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
-
-# Assumes custom helpers, mixins, and constants are imported correctly
-# from .utils import user_can_access_property_id
-# from core.permissions import DynamicPermissionMixin, IsAuthenticatedAndActive
-# from core.constants import LEASE_PERMISSION_MAP
 
 class LeaseViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
     serializer_class = LeaseSerializer
