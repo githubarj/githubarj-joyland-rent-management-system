@@ -259,3 +259,31 @@ def test_landlord_can_create_unit_for_own_property(
     assert response.status_code == 201
     assert response.data["success"] is True
     assert Unit.objects.filter(property=property_obj, unit_number="B2").exists()
+
+@pytest.mark.django_db
+def test_cannot_create_duplicate_unit_number_under_same_property(
+    api_client,
+    landlord_user,
+    property_obj,
+    unit_obj,
+    seed_permissions,
+):
+    api_client.force_authenticate(user=landlord_user)
+
+    payload = {
+        "property": property_obj.id,
+        "unit_number": "A1",
+        "unit_type": Unit.UnitType.ONE_BEDROOM,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "floor": "1",
+        "base_rent": "25000.00",
+        "deposit_required": "25000.00",
+        "status": Unit.UnitStatus.VACANT,
+    }
+
+    response = api_client.post("/api/units/", payload, format="json")
+
+    assert response.status_code == 400
+    assert response.data["success"] is False
+    assert "unit_number" in str(response.data["data"])
