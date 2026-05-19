@@ -232,3 +232,30 @@ def test_tenant_cannot_create_property(api_client, tenant_user, seed_permissions
 
     assert response.status_code in [403, 400]
     assert response.data["success"] is False
+
+@pytest.mark.django_db
+def test_landlord_can_create_unit_for_own_property(
+    api_client,
+    landlord_user,
+    property_obj,
+    seed_permissions,
+):
+    api_client.force_authenticate(user=landlord_user)
+
+    payload = {
+        "property": property_obj.id,
+        "unit_number": "B2",
+        "unit_type": Unit.UnitType.TWO_BEDROOM,
+        "bedrooms": 2,
+        "bathrooms": 1,
+        "floor": "2",
+        "base_rent": "40000.00",
+        "deposit_required": "40000.00",
+        "status": Unit.UnitStatus.VACANT,
+    }
+
+    response = api_client.post("/api/units/", payload, format="json")
+
+    assert response.status_code == 201
+    assert response.data["success"] is True
+    assert Unit.objects.filter(property=property_obj, unit_number="B2").exists()
