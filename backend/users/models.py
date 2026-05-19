@@ -207,7 +207,7 @@ class PropertyManager(SoftDeleteModel):
         ("ACCOUNTANT", "Accountant"),
         ("VIEWER", "Viewer"),
     ]
-    # property = models.ForeignKey("properties.Property", on_delete=models.CASCADE, related_name="managers")
+    property = models.ForeignKey("properties.Property", on_delete=models.CASCADE, related_name="managers")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="managed_properties")
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     invited_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
@@ -218,9 +218,9 @@ class PropertyManager(SoftDeleteModel):
 
 
     class Meta:
-        # constraints = [
-        #     models.UniqueConstraint(fields=["property", "user"], name="unique_property_user")
-        # ]
+        constraints = [
+            models.UniqueConstraint(fields=["property", "user"], name="unique_property_user")
+        ]
         indexes = [
             models.Index(fields=["user"], name="idx_property_manager_user")
         ]
