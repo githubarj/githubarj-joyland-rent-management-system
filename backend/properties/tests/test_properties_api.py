@@ -367,3 +367,39 @@ def test_tenant_cannot_view_another_tenants_lease(
     response = api_client.get(f"/api/leases/{active_lease.id}/")
 
     assert response.status_code == 404
+
+@pytest.mark.django_db
+def test_property_manager_sees_only_assigned_property(
+    api_client,
+    landlord_user,
+    property_manager_user,
+    property_obj,
+    seed_permissions,
+):
+    other_property = Property.objects.create(
+        landlord=landlord_user,
+        name="Hidden Property",
+        address_line1="Unknown Road",
+        city="Nairobi",
+        country="Kenya",
+    )
+
+    PropertyManager.objects.create(
+        property=property_obj,
+        user=property_manager_user,
+        role="MANAGER",
+        invited_by=landlord_user,
+        is_active=True,
+    )
+
+    api_client.force_authenticate(user=property_manager_user)
+
+    response = api_client.get("/api/properties/")
+
+    assert response.status_code == 200
+    assert response.data["success"] is True
+
+    property_ids = [item["id"] for item in response.data["data"]]
+
+    assert property_obj.id in property_ids
+    assert other_property.id not in property_ids
