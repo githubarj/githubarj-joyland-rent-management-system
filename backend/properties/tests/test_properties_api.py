@@ -215,3 +215,20 @@ def test_landlord_can_create_property(api_client, landlord_user, seed_permission
     assert response.data["success"] is True
     assert response.data["message"] == "Property created successfully"
     assert Property.objects.filter(name="Green Heights").exists()
+
+@pytest.mark.django_db
+def test_tenant_cannot_create_property(api_client, tenant_user, seed_permissions):
+    api_client.force_authenticate(user=tenant_user)
+
+    payload = {
+        "landlord": tenant_user.id,
+        "name": "Tenant Property",
+        "address_line1": "Some Road",
+        "city": "Nairobi",
+        "country": "Kenya",
+    }
+
+    response = api_client.post("/api/properties/", payload, format="json")
+
+    assert response.status_code in [403, 400]
+    assert response.data["success"] is False
