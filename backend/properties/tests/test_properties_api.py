@@ -287,3 +287,29 @@ def test_cannot_create_duplicate_unit_number_under_same_property(
     assert response.status_code == 400
     assert response.data["success"] is False
     assert "unit_number" in str(response.data["data"])
+
+@pytest.mark.django_db
+def test_cannot_create_second_active_lease_for_occupied_unit(
+    api_client,
+    landlord_user,
+    unit_obj,
+    tenant_user,
+    second_tenant_user,
+    active_lease,
+    seed_permissions,
+):
+    api_client.force_authenticate(user=landlord_user)
+
+    payload = {
+        "unit": unit_obj.id,
+        "tenant": second_tenant_user.id,
+        "start_date": "2026-06-01",
+        "billing_day": 5,
+        "status": Lease.LeaseStatus.ACTIVE,
+    }
+
+    response = api_client.post("/api/leases/", payload, format="json")
+
+    assert response.status_code == 400
+    assert response.data["success"] is False
+    assert "active lease" in str(response.data["data"]).lower()
