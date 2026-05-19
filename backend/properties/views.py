@@ -19,6 +19,17 @@ from django.utils.translation import gettext_lazy as _
 from drf_yasg import openapi
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from .swagger import (
+    COMMON_ERROR_RESPONSES,
+    PROPERTY_QUERY_PARAMS,
+    UNIT_QUERY_PARAMS,
+    LEASE_QUERY_PARAMS,
+    PROPERTY_EXAMPLE,
+    UNIT_EXAMPLE,
+    LEASE_EXAMPLE,
+    success_response,
+)
+
 
 PROPERTY_PERMISSION_MAP = {
     "list": "can_view_properties",
