@@ -313,3 +313,29 @@ def test_cannot_create_second_active_lease_for_occupied_unit(
     assert response.status_code == 400
     assert response.data["success"] is False
     assert "active lease" in str(response.data["data"]).lower()
+
+@pytest.mark.django_db
+def test_creating_active_lease_marks_unit_occupied(
+    api_client,
+    landlord_user,
+    unit_obj,
+    tenant_user,
+    seed_permissions,
+):
+    api_client.force_authenticate(user=landlord_user)
+
+    payload = {
+        "unit": unit_obj.id,
+        "tenant": tenant_user.id,
+        "start_date": "2026-05-01",
+        "billing_day": 5,
+        "status": Lease.LeaseStatus.ACTIVE,
+    }
+
+    response = api_client.post("/api/leases/", payload, format="json")
+
+    unit_obj.refresh_from_db()
+
+    assert response.status_code == 201
+    assert response.data["success"] is True
+    assert unit_obj.status == Unit.UnitStatus.OCCUPIED
