@@ -354,3 +354,16 @@ def test_tenant_can_view_own_lease(
     assert response.status_code == 200
     assert response.data["success"] is True
     assert response.data["data"]["id"] == active_lease.id
+
+@pytest.mark.django_db
+def test_tenant_cannot_view_another_tenants_lease(
+    api_client,
+    second_tenant_user,
+    active_lease,
+    seed_permissions,
+):
+    api_client.force_authenticate(user=second_tenant_user)
+
+    response = api_client.get(f"/api/leases/{active_lease.id}/")
+
+    assert response.status_code == 404
