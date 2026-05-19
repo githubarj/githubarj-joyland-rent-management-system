@@ -339,3 +339,18 @@ def test_creating_active_lease_marks_unit_occupied(
     assert response.status_code == 201
     assert response.data["success"] is True
     assert unit_obj.status == Unit.UnitStatus.OCCUPIED
+
+@pytest.mark.django_db
+def test_tenant_can_view_own_lease(
+    api_client,
+    tenant_user,
+    active_lease,
+    seed_permissions,
+):
+    api_client.force_authenticate(user=tenant_user)
+
+    response = api_client.get(f"/api/leases/{active_lease.id}/")
+
+    assert response.status_code == 200
+    assert response.data["success"] is True
+    assert response.data["data"]["id"] == active_lease.id
