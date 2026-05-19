@@ -546,6 +546,7 @@ class LeaseViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
             unit.status = Unit.UnitStatus.OCCUPIED
             unit.save(update_fields=["status", "updated_at"])
 
+
     @transaction.atomic
     def perform_update(self, serializer):
         # Fetch unmodified information out of DB before transaction tracking updates it
@@ -571,13 +572,45 @@ class LeaseViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
             old_unit.status = Unit.UnitStatus.VACANT
             old_unit.save(update_fields=["status", "updated_at"])
 
-    @swagger_auto_schema(operation_summary="List leases", tags=["Leases"])
+    @swagger_auto_schema(
+        operation_summary="List leases",
+        operation_description=(
+            "Returns leases visible to the authenticated user. "
+            "Tenants see their own leases. Landlords and assigned managers see leases "
+            "for properties they own or manage."
+        ),
+        manual_parameters=LEASE_QUERY_PARAMS,
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Leases fetched successfully",
+                example_data=[LEASE_EXAMPLE],
+                message="Leases fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def list(self, request, *args, **kwargs):
         self.check_dynamic_permission()
         response = super().list(request, *args, **kwargs)
         return api_response(True, "Leases fetched successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Retrieve lease", tags=["Leases"])
+    @swagger_auto_schema(
+        operation_summary="Retrieve lease",
+        operation_description=(
+            "Returns a single lease. Tenants may retrieve their own leases. "
+            "Managers must have access to the lease's property."
+        ),
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease fetched successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def retrieve(self, request, *args, **kwargs):
         obj = self.get_object()
 
@@ -590,7 +623,23 @@ class LeaseViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         response = super().retrieve(request, *args, **kwargs)
         return api_response(True, "Lease fetched successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Create lease", request_body=LeaseSerializer, tags=["Leases"])
+    @swagger_auto_schema(
+        operation_summary="Create lease",
+        operation_description=(
+            "Creates a lease for a tenant and unit. The user must have access to the unit's property "
+            "and the can_manage_leases permission. If the lease status is ACTIVE, the unit is marked OCCUPIED."
+        ),
+        request_body=LeaseSerializer,
+        tags=["Leases"],
+        responses={
+            201: success_response(
+                "Lease created successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease created successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def create(self, request, *args, **kwargs):
         unit_id = request.data.get("unit")
 
@@ -610,21 +659,66 @@ class LeaseViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         return api_response(True, "Lease created successfully", response.data, status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(operation_summary="Update lease", request_body=LeaseSerializer, tags=["Leases"])
+    @swagger_auto_schema(
+        operation_summary="Update lease",
+        operation_description=(
+            "Fully updates a lease. If the lease becomes ACTIVE, the unit is marked OCCUPIED. "
+            "If an ACTIVE lease changes away from ACTIVE, the old unit is marked VACANT."
+        ),
+        request_body=LeaseSerializer,
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease updated successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def update(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.unit.property_id)
         response = super().update(request, *args, **kwargs)
         return api_response(True, "Lease updated successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Partially update lease", request_body=LeaseSerializer, tags=["Leases"])
+    @swagger_auto_schema(
+        operation_summary="Partially update lease",
+        operation_description=(
+            "Partially updates a lease. Unit status is synchronized when lease status changes."
+        ),
+        request_body=LeaseSerializer,
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease updated successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.unit.property_id)
         response = super().partial_update(request, *args, **kwargs)
         return api_response(True, "Lease updated successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Soft delete lease", tags=["Leases"])
+    @swagger_auto_schema(
+        operation_summary="Soft delete lease",
+        operation_description=(
+            "Soft deletes a lease. If the lease was ACTIVE, the linked unit is marked VACANT."
+        ),
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease deleted successfully",
+                example_data=None,
+                message="Lease deleted successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
