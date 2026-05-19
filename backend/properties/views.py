@@ -132,13 +132,47 @@ class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
 
         return scoped_queryset.order_by("-created_at")
 
-    @swagger_auto_schema(operation_summary="List properties", tags=["Properties"])
+    @swagger_auto_schema(
+        operation_summary="List properties",
+        operation_description=(
+            "Returns properties visible to the authenticated user. "
+            "Admins can view all properties. Landlords can view their own properties. "
+            "Assigned property managers can view assigned properties."
+        ),
+        manual_parameters=PROPERTY_QUERY_PARAMS,
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Properties fetched successfully",
+                example_data=[PROPERTY_EXAMPLE],
+                message="Properties fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def list(self, request, *args, **kwargs):
         self.check_dynamic_permission()
         response = super().list(request, *args, **kwargs)
         # FIX: Added required positional arguments to bypass wrapper parameter issues
         return api_response(True, "Properties fetched successfully", response.data, status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_summary="Create property",
+        operation_description=(
+            "Creates a new property. Non-admin landlords can only create properties "
+            "under their own landlord account."
+        ),
+        request_body=PropertySerializer,
+        tags=["Properties"],
+        responses={
+            201: success_response(
+                "Property created successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property created successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def create(self, request, *args, **kwargs):
         self.check_dynamic_permission()
         user = request.user
@@ -186,28 +220,83 @@ class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
             serializer.save(landlord=user)
 
 
-    @swagger_auto_schema(operation_summary="Retrieve property", tags=["Properties"])
+    @swagger_auto_schema(
+        operation_summary="Retrieve property",
+        operation_description="Returns a single property if the authenticated user has access.",
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Property fetched successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def retrieve(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.id)
         response = super().retrieve(request, *args, **kwargs)
         return api_response(True, "Property fetched successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Update property", request_body=PropertySerializer, tags=["Properties"])
+    @swagger_auto_schema(
+        operation_summary="Update property",
+        operation_description="Fully updates a property the authenticated user can manage.",
+        request_body=PropertySerializer,
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Property updated successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def update(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.id)
         response = super().update(request, *args, **kwargs)
         return api_response(True, "Property updated successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Partially update property", request_body=PropertySerializer, tags=["Properties"])
+    @swagger_auto_schema(
+        operation_summary="Partially update property",
+        operation_description="Partially updates a property the authenticated user can manage.",
+        request_body=PropertySerializer,
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Property updated successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.id)
         response = super().partial_update(request, *args, **kwargs)
         return api_response(True, "Property updated successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Soft delete property", tags=["Properties"])
+    @swagger_auto_schema(
+        operation_summary="List units",
+        operation_description=(
+            "Returns units visible to the authenticated user. "
+            "Landlords can view units under their properties. "
+            "Assigned property managers can view units under assigned properties."
+        ),
+        manual_parameters=UNIT_QUERY_PARAMS,
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Units fetched successfully",
+                example_data=[UNIT_EXAMPLE],
+                message="Units fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.id)
