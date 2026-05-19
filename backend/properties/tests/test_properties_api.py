@@ -189,3 +189,29 @@ def active_lease(db, unit_obj, tenant_user, landlord_user):
     unit_obj.save(update_fields=["status"])
 
     return lease
+
+
+#Tests from here
+
+@pytest.mark.django_db
+def test_landlord_can_create_property(api_client, landlord_user, seed_permissions):
+    api_client.force_authenticate(user=landlord_user)
+
+    payload = {
+        "landlord": landlord_user.id,
+        "name": "Green Heights",
+        "address_line1": "Kilimani Road",
+        "address_line2": "",
+        "city": "Nairobi",
+        "state": "Nairobi County",
+        "country": "Kenya",
+        "postal_code": "00100",
+        "notes": "Test property",
+    }
+
+    response = api_client.post("/api/properties/", payload, format="json")
+
+    assert response.status_code == 201
+    assert response.data["success"] is True
+    assert response.data["message"] == "Property created successfully"
+    assert Property.objects.filter(name="Green Heights").exists()
