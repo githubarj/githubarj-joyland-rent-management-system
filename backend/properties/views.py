@@ -364,7 +364,23 @@ class UnitViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         response = super().list(request, *args, **kwargs)
         return api_response(True, "Units fetched successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Create unit", request_body=UnitSerializer, tags=["Units"])
+    @swagger_auto_schema(
+        operation_summary="Create unit",
+        operation_description=(
+            "Creates a unit under a property. User must have access to the property "
+            "and the can_manage_units permission."
+        ),
+        request_body=UnitSerializer,
+        tags=["Units"],
+        responses={
+            201: success_response(
+                "Unit created successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit created successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def create(self, request, *args, **kwargs):
         property_id = request.data.get("property")
 
@@ -385,28 +401,78 @@ class UnitViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         return api_response(True, "Unit created successfully", response.data, status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(operation_summary="Retrieve unit", tags=["Units"])
+    @swagger_auto_schema(
+        operation_summary="Retrieve unit",
+        operation_description="Returns a single unit if the authenticated user has property access.",
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit fetched successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def retrieve(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.property_id)
         response = super().retrieve(request, *args, **kwargs)
         return api_response(True, "Unit fetched successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Update unit", request_body=UnitSerializer, tags=["Units"])
+    @swagger_auto_schema(
+        operation_summary="Update unit",
+        operation_description="Fully updates a unit under a property the user can manage.",
+        request_body=UnitSerializer,
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit updated successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def update(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.property_id)
         response = super().update(request, *args, **kwargs)
         return api_response(True, "Unit updated successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Partially update unit", request_body=UnitSerializer, tags=["Units"])
+    @swagger_auto_schema(
+        operation_summary="Partially update unit",
+        operation_description="Partially updates a unit under a property the user can manage.",
+        request_body=UnitSerializer,
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit updated successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.property_id)
         response = super().partial_update(request, *args, **kwargs)
         return api_response(True, "Unit updated successfully", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_summary="Soft delete unit", tags=["Units"])
+    @swagger_auto_schema(
+        operation_summary="Soft delete unit",
+        operation_description="Soft deletes a unit by setting deleted_at and disabling it.",
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit deleted successfully",
+                example_data=None,
+                message="Unit deleted successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
         self.check_dynamic_permission(property_id=obj.property_id)
