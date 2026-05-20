@@ -74,6 +74,7 @@ class Migration(migrations.Migration):
     dependencies = [
         # Replace these with your actual latest migration names if different.
         ('users', '0009_seed_initial_permissions'),
+        ('properties', '0002_seed_property_permissions'),
     ]
 
     operations = [

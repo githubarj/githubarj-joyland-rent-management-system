@@ -8,7 +8,7 @@ DATABASES = {
         'NAME':     "rentms_test",
         'USER':     config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
-        'HOST':     config('DB_HOST', default='localhost'),
+        'HOST':     config('DB_HOST', default='db'),
         'PORT':     config('DB_PORT', default=5432, cast=int),
         "TEST": {
                 "NAME": "rentms_test",   # 👈 force pytest to use this DB

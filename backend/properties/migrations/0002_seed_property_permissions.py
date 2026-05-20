@@ -29,6 +29,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('properties', '0001_initial'),
+        ('users','0007_permission_managerprofile_landlordprofile_and_more')
     ]
 
     operations = [
