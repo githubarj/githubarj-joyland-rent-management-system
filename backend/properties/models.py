@@ -163,11 +163,11 @@ class Lease(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=Q(billing_day__gte=1) & Q(billing_day__lte=28),
+                condition=Q(billing_day__gte=1) & Q(billing_day__lte=28),
                 name="lease_billing_day_1_28_ck",
             ),
             models.CheckConstraint(
-                check=Q(end_date__isnull=True) | Q(end_date__gte=models.F("start_date")),
+                condition=Q(end_date__isnull=True) | Q(end_date__gte=models.F("start_date")),
                 name="lease_end_date_after_start_date_ck",
             ),
             models.UniqueConstraint(
