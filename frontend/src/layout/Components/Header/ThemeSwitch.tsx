@@ -8,7 +8,7 @@ const ThemeSwitch: React.FC = () => {
 
   return (
     <Tooltip
-      label='Switch themes'
+      label="Switch themes"
       openDelay={500}
       transitionProps={{ transition: 'pop' }}
     >

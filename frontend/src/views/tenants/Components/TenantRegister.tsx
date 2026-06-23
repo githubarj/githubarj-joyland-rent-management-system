@@ -1,9 +1,7 @@
-import React from "react"
+import React from 'react';
 
 const TenantRegister: React.FC = () => {
-  return (
-    <div>Hello</div>
-  )
-}
+  return <div>Hello</div>;
+};
 
-export default TenantRegister
+export default TenantRegister;

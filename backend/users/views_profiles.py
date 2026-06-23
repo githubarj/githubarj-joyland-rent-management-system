@@ -98,8 +98,8 @@ class UserViewSet(viewsets.ModelViewSet):
     def list(self, request, *args,**kwargs):
         response = super().list(request,*args, **kwargs)
         return api_response(True, "Users fetched",response.data,status.HTTP_200_OK)
-    
-    @swagger_auto_schema(tags=["Users"], 
+
+    @swagger_auto_schema(tags=["Users"],
             operation_summary="Create user",
             request_body=RegisterSerializer,
             responses={
@@ -292,7 +292,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update"]:
             return "can_manage_tenant_profiles"
         return None
-    
+
     def get_permissions(self):
         # Attach required_permission so RBACPermission can check it
         self.required_permission = self.get_required_permission()
@@ -324,7 +324,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return api_response(True,"Tenant profile fetched",serializer.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["Tenant Profiles"], 
+    @swagger_auto_schema(tags=["Tenant Profiles"],
         operation_summary="List all tenant profiles",
         responses={
             200: openapi.Response(
@@ -481,7 +481,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied("Tenants cannot delete their own profile.")
         instance.soft_delete()   # ✅ calls model’s soft_delete instead of hard delete
         return api_response(True,"Tenant profile deleted", None, status.HTTP_200_OK)
-    
+
     @swagger_auto_schema(tags=["Tenant Profiles"],
         method="post",
         operation_summary="Restore a deleted tenant profile",
@@ -522,7 +522,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
         try:
             instance = TenantProfile.all_objects.get(pk=pk)
             # Object exists in queryset, so now apply action-level check
-            self.check_object_permissions(request, instance) 
+            self.check_object_permissions(request, instance)
             instance.restore()
             serializer = self.get_serializer(instance)
             return api_response(
@@ -533,7 +533,7 @@ class TenantProfileViewSet(viewsets.ModelViewSet):
             return api_response(
                  False, "Tenant profile not found", None,status.HTTP_404_NOT_FOUND
             )
-        
+
 
 # ----------------- MANAGER PROFILES -----------------
 class ManagerProfileViewSet(viewsets.ModelViewSet):
@@ -756,7 +756,7 @@ class LandlordProfileViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied("Landlord cannot delete their own profile.")
         instance.soft_delete() if hasattr(instance, "soft_delete") else instance.delete()
         return api_response({"success": True, "message": "Landlord profile deleted", "data": None})
-    
+
     @swagger_auto_schema(
         method="post",
         tags=["Landlord Profiles"],
@@ -1012,4 +1012,3 @@ class LandlordPayoutMethodViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance.delete()
         return api_response(True,"Payout method deleted", None, status.HTTP_200_OK)
-    

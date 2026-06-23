@@ -31,10 +31,8 @@ const Register: React.FC = () => {
       confirm_password: '',
     },
     validate: {
-      email: (value) =>
-        /^\S+@\S+\.\S+$/.test(value) ? null : 'Invalid email format',
-      full_name: (value) =>
-        value.trim().length > 0 ? null : 'First name is required',
+      email: (value) => (/^\S+@\S+\.\S+$/.test(value) ? null : 'Invalid email format'),
+      full_name: (value) => (value.trim().length > 0 ? null : 'First name is required'),
       password: (value) =>
         value.length >= 8 && /[0-9]/.test(value) && /[!@#$%^&*]/.test(value)
           ? null
@@ -58,51 +56,51 @@ const Register: React.FC = () => {
 
   return (
     <Container miw={400}>
-      <Title ta='center'> {APP_NAME} </Title>
-      <Text c='dimmed' size='sm' ta='center' mt={5}>
+      <Title ta="center"> {APP_NAME} </Title>
+      <Text c="dimmed" size="sm" ta="center" mt={5}>
         Create an account to get started &#128075;
       </Text>
 
-      <Paper withBorder shadow='md' p={30} mt={30} radius='md'>
+      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
         <form onSubmit={handleSubmit}>
           <TextInput
-            label='Full Name'
-            placeholder='Full Name'
+            label="Full Name"
+            placeholder="Full Name"
             required
             {...form.getInputProps('full_name')}
           />
 
           <TextInput
-            label='Email'
-            placeholder='Email'
+            label="Email"
+            placeholder="Email"
             required
             mt={'md'}
             {...form.getInputProps('email')}
           />
           <PasswordInput
-            label='Password'
-            placeholder='Your password'
+            label="Password"
+            placeholder="Your password"
             required
-            mt='md'
+            mt="md"
             {...form.getInputProps('password')}
           />
           <PasswordInput
-            label='Confirm password'
-            placeholder='Confirm password'
+            label="Confirm password"
+            placeholder="Confirm password"
             required
-            mt='md'
+            mt="md"
             {...form.getInputProps('confirm_password')}
           />
-          <Group justify='space-between' mt='lg'>
+          <Group justify="space-between" mt="lg">
             <Anchor
               onClick={() => goTo({ to: '/forgot-password' })}
-              component='button'
-              size='sm'
+              component="button"
+              size="sm"
             >
               Forgot password?
             </Anchor>
           </Group>
-          <Button loading={loading['register']} fullWidth mt='xl' type='submit'>
+          <Button loading={loading['register']} fullWidth mt="xl" type="submit">
             Register
           </Button>
         </form>

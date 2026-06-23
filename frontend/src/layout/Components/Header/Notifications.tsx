@@ -1,12 +1,12 @@
 import { IoMdNotificationsOutline } from 'react-icons/io';
 import { Indicator, Tooltip, UnstyledButton } from '@mantine/core';
 import React from 'react';
-import layout from '../../styles/layout.module.scss'
+import layout from '../../styles/layout.module.scss';
 
 const Notifications: React.FC = () => {
   return (
     <Tooltip
-      label='Notifications'
+      label="Notifications"
       openDelay={500}
       transitionProps={{ transition: 'pop' }}
     >
@@ -16,7 +16,7 @@ const Notifications: React.FC = () => {
           className={layout.centerIcons}
           offset={5.5}
           withBorder
-          color='red'
+          color="red"
         >
           <IoMdNotificationsOutline size={24} />
         </Indicator>

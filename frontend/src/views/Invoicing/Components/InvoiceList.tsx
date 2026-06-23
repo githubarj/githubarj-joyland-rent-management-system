@@ -1,6 +1,6 @@
 import { Container } from '@mantine/core';
 import SearchInvoices from './SearchInvoices';
-import InvoiceTable from '../Components/InvoiceTable'
+import InvoiceTable from '../Components/InvoiceTable';
 import React from 'react';
 
 const InvoiceList: React.FC = () => {

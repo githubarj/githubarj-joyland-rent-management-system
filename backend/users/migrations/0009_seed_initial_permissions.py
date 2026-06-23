@@ -24,7 +24,7 @@ def seed_permissions(apps, schema_editor):
     for code, desc in initial_permissions:
         perm, _ = Permission.objects.get_or_create(code=code, defaults={"description": desc})
         perm_objs[code] = perm
-    
+
     # Link defaults to roles
     default_role_map = {
         "landlord": [

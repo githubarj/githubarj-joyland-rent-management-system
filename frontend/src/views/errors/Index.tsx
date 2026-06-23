@@ -7,16 +7,16 @@ import useCustomNavigation from '../../hooks/useCustomNavigation';
 const ErrorPage: React.FC = () => {
   const { goBack } = useCustomNavigation();
   return (
-    <Stack mt={30} align='center' className={error}>
+    <Stack mt={30} align="center" className={error}>
       <Error404 />
       <Tooltip
-        label='Go back to the previos page'
+        label="Go back to the previos page"
         openDelay={500}
         withArrow
         mt={20}
         offset={-10}
-        position='bottom'
-        arrowPosition='center'
+        position="bottom"
+        arrowPosition="center"
       >
         <Button w={'fit-content'} onClick={goBack}>
           Go back

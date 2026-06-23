@@ -33,9 +33,9 @@ def test_tenant_cannot_view_other_profiles(api_client, tenant_user, landlord_use
     TenantProfile.objects.create(user=other)
 
     api_client.force_authenticate(user=tenant_user)
-    
+
     url= reverse("tenant-profiles-detail", args=[landlord_user.manager_profile.id]) #wrong-profile
-    response = api_client.get(url) 
+    response = api_client.get(url)
 
     # should not expose other tenant/manager profiles
     assert response.status_code in (404, 403)
@@ -49,4 +49,3 @@ def test_tenant_cannot_create_profile(api_client, tenant_user):
     response = api_client.post(url, data)
 
     assert response.status_code == 403
-

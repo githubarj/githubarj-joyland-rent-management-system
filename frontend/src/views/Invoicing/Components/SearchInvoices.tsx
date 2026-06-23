@@ -4,16 +4,16 @@ import { DateTimePicker } from '@mantine/dates';
 
 const SearchInvoices: React.FC = () => {
   return (
-    <Paper py={'lg'} px={'md'} mb={30} shadow='sm' radius={5}>
+    <Paper py={'lg'} px={'md'} mb={30} shadow="sm" radius={5}>
       <Title order={2} mb={10}>
         Filters
       </Title>
       <Grid>
         <Grid.Col span={6}>
-          <MultiSelect placeholder='Pick value' data={['Pending', 'paid']} />
+          <MultiSelect placeholder="Pick value" data={['Pending', 'paid']} />
         </Grid.Col>
         <Grid.Col span={6}>
-          <DateTimePicker placeholder='Pick date and time' />
+          <DateTimePicker placeholder="Pick date and time" />
         </Grid.Col>
       </Grid>
     </Paper>

@@ -56,8 +56,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             fail_silently=False
         )
 
-        return user   
-         
+        return user
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="Enter your email")
     password = serializers.CharField(write_only=True, help_text="Must be 8+ characters")
@@ -68,21 +68,21 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid email or password")
         data['user'] = user
         return data
-    
+
 class UserDetailSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 
-            'email', 
+        fields = ['id',
+            'email',
             'roles',
             'surname',
             'other_names',
             'phone',
-            'date_joined', 
+            'date_joined',
             'is_active']
-    
+
     def get_roles(self, obj):
         roles = []
         if obj.is_admin:
@@ -127,7 +127,7 @@ class PasswordResetSerializer(serializers.Serializer):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("User with this email does not exist.")
         return value
-    
+
     def save(self):
         email = self.validated_data["email"]
         try:
@@ -156,19 +156,19 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs.get("new_password") != attrs.get("confirm_password"):
             raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
-        
+
         #Decode user
         try:
             uid = urlsafe_base64_decode(attrs["uid"]).decode()
             user = User.objects.get(pk=uid)
         except:
             raise serializers.ValidationError({"uid": "Invalid user identifier."})
-        
+
         #Validate_token
 
         if not default_token_generator.check_token(user, attrs["token"]):
             raise serializers.ValidationError({"token":"Invalid or expired token"})
-        
+
         # Password validators
         try:
             validate_password(attrs["new_password"], user=user)
@@ -178,7 +178,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         # Stash user for save()
         self.user = user
         return attrs
-    
+
     def save(self, **kwargs):
         self.user.set_password(self.validated_data["new_password"])
         self.user.save()
@@ -207,13 +207,13 @@ class TenantProfileSerializer(serializers.ModelSerializer):
         if not getattr(user, "is_tenant", False):
             raise serializers.ValidationError({"user": "User must be a tenant to have TenantProfile."})
         return attrs
-        
+
 # ----------------- MANAGER PROFILES -----------------
 class ManagerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = ManagerProfile
         fields = "__all__"
-    
+
     def validate(self, attrs):
         """
         Ensures only users with is_manager=True can have a ManagerProfile.
@@ -262,9 +262,8 @@ class RolePermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = RolePermission
         fields = "__all__"
-    
+
 class UserPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPermission
         fields = "__all__"
-

@@ -40,10 +40,9 @@ const VerifyEmail: React.FC = () => {
         <Loader />
       ) : (
         <>
-          
-          <Title ta='center'>Email address verified</Title>
+          <Title ta="center">Email address verified</Title>
           <MdMarkEmailRead size={48} />
-          <Text c='dimmed' size='sm' ta='center' mt={5}>
+          <Text c="dimmed" size="sm" ta="center" mt={5}>
             Your email address has being confirmed and your account has been
             successfully created, you can now log in with your user details
           </Text>

@@ -23,7 +23,7 @@ const Navlinks: React.FC = () => {
   );
 
   return (
-    <AppShell.Section component={ScrollArea} type='hover'>
+    <AppShell.Section component={ScrollArea} type="hover">
       {links.map(renderNavLink)}
     </AppShell.Section>
   );
