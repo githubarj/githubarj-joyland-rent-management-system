@@ -1,6 +1,9 @@
 
 from django.db import migrations
 
+# NOTE: can_manage_properties is also seeded in users/0009_seed_initial_permissions.
+# Both use get_or_create, so whichever migration runs first owns the stored description.
+# This migration is the canonical source; keep the two descriptions in sync if changed.
 PROPERTY_PERMISSION_CODES = [
     ("can_view_properties", "Can view properties"),
     ("can_manage_properties", "Can create, update, and delete properties"),
