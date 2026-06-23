@@ -185,7 +185,8 @@ class Lease(models.Model):
 
     def soft_delete(self):
         self.deleted_at = timezone.now()
-        self.save(update_fields=["deleted_at", "updated_at"])
+        self.is_active = False
+        self.save(update_fields=["deleted_at", "is_active", "updated_at"])
 
     def __str__(self):
         return f"{self.tenant} - {self.unit} ({self.status})"
