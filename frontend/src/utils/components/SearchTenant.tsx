@@ -1,9 +1,4 @@
-import {
-  Combobox,
-  Input,
-  InputBase,
-  useCombobox,
-} from '@mantine/core';
+import { Combobox, Input, InputBase, useCombobox } from '@mantine/core';
 import React, { useState } from 'react';
 
 const groceries = [
@@ -50,14 +45,14 @@ const SearchTenant: React.FC = () => {
     >
       <Combobox.Target>
         <InputBase
-          className='min-w-48'
+          className="min-w-48"
           label={'Invoice To:'}
-          component='button'
-          type='button'
+          component="button"
+          type="button"
           pointer
           rightSection={<Combobox.Chevron />}
           onClick={() => combobox.toggleDropdown()}
-          rightSectionPointerEvents='none'
+          rightSectionPointerEvents="none"
         >
           {value || <Input.Placeholder>Pick a house</Input.Placeholder>}
         </InputBase>
@@ -67,7 +62,7 @@ const SearchTenant: React.FC = () => {
         <Combobox.Search
           value={search}
           onChange={(event) => setSearch(event.currentTarget.value)}
-          placeholder='Search groceries'
+          placeholder="Search groceries"
         />
         <Combobox.Options>
           {options.length > 0 ? (
@@ -81,4 +76,4 @@ const SearchTenant: React.FC = () => {
   );
 };
 
-export default SearchTenant; 
+export default SearchTenant;

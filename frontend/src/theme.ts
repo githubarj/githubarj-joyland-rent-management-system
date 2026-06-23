@@ -1,4 +1,4 @@
-import { createTheme, MantineTheme, } from '@mantine/core';
+import { createTheme, MantineTheme } from '@mantine/core';
 
 const theme = createTheme({
   fontFamily: 'Lato, sans-serif',
@@ -17,7 +17,6 @@ const theme = createTheme({
       '#4c5763',
     ],
   },
- 
 }) as MantineTheme;
 
 export default theme;

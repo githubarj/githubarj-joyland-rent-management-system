@@ -36,7 +36,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return api_response(True, "Permission fetched",serializer.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["Permissions"], 
+    @swagger_auto_schema(tags=["Permissions"],
         operation_summary="List permissions",
         responses={
         200: openapi.Response(
@@ -58,12 +58,12 @@ class PermissionViewSet(viewsets.ModelViewSet):
         }
     )
     def list(self, request, *args, **kwargs):
-        print("DEBUG basename:", self.basename) 
+        print("DEBUG basename:", self.basename)
         response = super().list(request, *args, **kwargs)
         return api_response(True,"Permissions fetched", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["Permissions"], 
-        operation_summary="Create permission", 
+    @swagger_auto_schema(tags=["Permissions"],
+        operation_summary="Create permission",
         request_body=PermissionSerializer,
         responses={
                 201: openapi.Response(
@@ -94,8 +94,8 @@ class PermissionViewSet(viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         return api_response(True, "Permission created", response.data,status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(tags=["Permissions"], 
-        operation_summary="Update permission", 
+    @swagger_auto_schema(tags=["Permissions"],
+        operation_summary="Update permission",
         request_body=PermissionSerializer,
         responses={
             200: openapi.Response(
@@ -140,7 +140,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
         response = super().update(request, *args, **kwargs)
         return api_response( True, "Permission updated", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["Permissions"], 
+    @swagger_auto_schema(tags=["Permissions"],
         operation_summary="Delete permission",
         responses={
             200: openapi.Response(
@@ -203,7 +203,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return api_response(True, "Role permission fetched", serializer.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["Role Permissions"], 
+    @swagger_auto_schema(tags=["Role Permissions"],
         operation_summary="List role permissions",
         responses={
         200: openapi.Response(
@@ -229,7 +229,7 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         return api_response(True, "Role permissions fetched", response.data, status.HTTP_200_OK)
 
     @swagger_auto_schema(tags=["Role Permissions"],
-        operation_summary="Create role permission", 
+        operation_summary="Create role permission",
         request_body=RolePermissionSerializer,
         responses={
                 201: openapi.Response(
@@ -258,8 +258,8 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         return api_response(True, "Role permission created", response.data, status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(tags=["Role Permissions"], 
-        operation_summary="Update role permission", 
+    @swagger_auto_schema(tags=["Role Permissions"],
+        operation_summary="Update role permission",
         request_body=RolePermissionSerializer,
         responses={
             200: openapi.Response(
@@ -286,13 +286,13 @@ class RolePermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-        }   
+        }
     )
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
         return api_response( True,"Role permission updated", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["Role Permissions"], 
+    @swagger_auto_schema(tags=["Role Permissions"],
         operation_summary="Delete role permission",
         responses={
             200: openapi.Response(
@@ -332,7 +332,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
         if user.is_superuser or user.is_admin:
             return UserPermission.objects.all()
         return UserPermission.objects.none()
-    
+
     @swagger_auto_schema(tags=["User Permissions"],
         operation_summary="Get a user permission override",
         responses={
@@ -355,7 +355,7 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
         return api_response(True,"User permission fetched",serializer.data, status.HTTP_200_OK)
 
 
-    @swagger_auto_schema(tags=["User Permissions"], 
+    @swagger_auto_schema(tags=["User Permissions"],
         operation_summary="List user permissions",
         responses={
         200: openapi.Response(
@@ -380,8 +380,8 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
         response = super().list(request, *args, **kwargs)
         return api_response(True, "User specific permissions fetched", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["User Permissions"], 
-        operation_summary="Create user permission", 
+    @swagger_auto_schema(tags=["User Permissions"],
+        operation_summary="Create user permission",
         request_body=UserPermissionSerializer,
         responses={
             201: openapi.Response(
@@ -410,8 +410,8 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         return api_response(True,"User permission created", response.data, status.HTTP_201_CREATED)
 
-    @swagger_auto_schema(tags=["User Permissions"], 
-        operation_summary="Update user permission", 
+    @swagger_auto_schema(tags=["User Permissions"],
+        operation_summary="Update user permission",
         request_body=UserPermissionSerializer,
         responses={
             200: openapi.Response(
@@ -438,13 +438,13 @@ class UserPermissionViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
-        } 
+        }
     )
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
         return api_response( True, "User permission updated", response.data, status.HTTP_200_OK)
 
-    @swagger_auto_schema(tags=["User Permissions"], 
+    @swagger_auto_schema(tags=["User Permissions"],
         operation_summary="Delete user permission",
         responses={
             200: openapi.Response(

@@ -1,8 +1,14 @@
-import { Combobox, Autocomplete, useCombobox, TextInput, Stack, Text, Group } from "@mantine/core"
-import React, { useEffect, useState } from "react"
-const data = [
-  'Dan', 'Mwangi', 'Stacy'
-];
+import {
+  Combobox,
+  Autocomplete,
+  useCombobox,
+  TextInput,
+  Stack,
+  Text,
+  Group,
+} from '@mantine/core';
+import React, { useEffect, useState } from 'react';
+const data = ['Dan', 'Mwangi', 'Stacy'];
 
 const InvoiceFooter: React.FC = () => {
   const combobox = useCombobox({
@@ -52,7 +58,11 @@ const InvoiceFooter: React.FC = () => {
 
         <Combobox.Dropdown>
           <Combobox.Options>
-            {options.length === 0 ? <Combobox.Empty>Nothing found</Combobox.Empty> : options}
+            {options.length === 0 ? (
+              <Combobox.Empty>Nothing found</Combobox.Empty>
+            ) : (
+              options
+            )}
           </Combobox.Options>
         </Combobox.Dropdown>
       </Combobox>
@@ -61,10 +71,9 @@ const InvoiceFooter: React.FC = () => {
           <Text>Total: </Text>
           <Text fw={500}> 500 Ksh </Text>
         </Group>
-
       </Stack>
     </div>
-  )
-}
+  );
+};
 
-export default InvoiceFooter
+export default InvoiceFooter;

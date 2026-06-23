@@ -1,8 +1,17 @@
-import { Button, CloseButton, Combobox, Input, InputBase, NumberInput, Tooltip, useCombobox } from '@mantine/core';
-import React, { useState } from 'react'
-import { IoAddSharp } from "react-icons/io5";
+import {
+  Button,
+  CloseButton,
+  Combobox,
+  Input,
+  InputBase,
+  NumberInput,
+  Tooltip,
+  useCombobox,
+} from '@mantine/core';
+import React, { useState } from 'react';
+import { IoAddSharp } from 'react-icons/io5';
 
-const groceries = ["Rent", "Water", "Repair"]
+const groceries = ['Rent', 'Water', 'Repair'];
 
 const InvoiceItem: React.FC = () => {
   const combobox = useCombobox({
@@ -18,8 +27,8 @@ const InvoiceItem: React.FC = () => {
   ));
   return (
     <>
-      <div className='w-full flex justify-between p-4 rounded-md border'>
-        <div className='flex flex-wrap gap-4 '>
+      <div className="w-full flex justify-between p-4 rounded-md border">
+        <div className="flex flex-wrap gap-4 ">
           <Combobox
             store={combobox}
             onOptionSubmit={(val) => {
@@ -45,25 +54,25 @@ const InvoiceItem: React.FC = () => {
               <Combobox.Options>{options}</Combobox.Options>
             </Combobox.Dropdown>
           </Combobox>
-          <NumberInput
-            label="Cost"
-            placeholder="Cost (Ksh)"
-          />
-          <NumberInput
-            label="Quantity"
-            placeholder="Quantity"
-          />
+          <NumberInput label="Cost" placeholder="Cost (Ksh)" />
+          <NumberInput label="Quantity" placeholder="Quantity" />
           <NumberInput disabled label="Total Cost" placeholder="Total Cost" />
         </div>
-        <div className=''>
+        <div className="">
           <Tooltip label="Remove item">
-            <CloseButton size={"sm"} />
+            <CloseButton size={'sm'} />
           </Tooltip>
         </div>
       </div>
-      <Button variant="filled" className='mt-2.5' rightSection={<IoAddSharp size={18} />}>Add an item</Button>
+      <Button
+        variant="filled"
+        className="mt-2.5"
+        rightSection={<IoAddSharp size={18} />}
+      >
+        Add an item
+      </Button>
     </>
-  )
-}
+  );
+};
 
-export default InvoiceItem
+export default InvoiceItem;

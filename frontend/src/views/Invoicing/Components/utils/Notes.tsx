@@ -1,14 +1,8 @@
-import { Textarea } from "@mantine/core";
-import React from "react";
+import { Textarea } from '@mantine/core';
+import React from 'react';
 
 const Notes: React.FC = () => {
-  return (
-    <Textarea
-      label="Notes"
-      description="Additional comments"
-      placeholder=""
-    />
-  )
-}
+  return <Textarea label="Notes" description="Additional comments" placeholder="" />;
+};
 
-export default Notes
+export default Notes;

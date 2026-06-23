@@ -28,7 +28,7 @@ class RegisterView(APIView):
     @swagger_auto_schema(
         operation_summary="Register a new user and send email verification",
         request_body=RegisterSerializer,
-        tags=['Auth'], 
+        tags=['Auth'],
         responses={
             201: openapi.Response(
                 description="User registered successfully",
@@ -58,8 +58,8 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return api_response(True, "User registered successfully", data=None, status=status.HTTP_201_CREATED )
-        return api_response(False, "Validation error", data=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+            return api_response(True, "User registered successfully", None, status.HTTP_201_CREATED)
+        return api_response(False, "Validation error", serializer.errors, status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmailView(APIView):
     @swagger_auto_schema(
@@ -91,7 +91,7 @@ class VerifyEmailView(APIView):
                 user.save()
 
             return api_response(True, "Email verified successfully", None, status.HTTP_200_OK)
-        
+
         except Exception as e:
             return api_response(False, "Invalid or expired token", None, status.HTTP_400_BAD_REQUEST)
 
@@ -135,7 +135,7 @@ class ResendVerificationView(APIView):
             return Response({"message": "Verification email resent."}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User with this email does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
 class PasswordResetView(APIView):
     permission_classes = [AllowAny]
     serializer_classes = [PasswordResetSerializer]
@@ -174,7 +174,7 @@ class PasswordResetView(APIView):
         if serializer.is_valid():
             serializer.save()
             return api_response(True, "Password Reset link sent",None, status=status.HTTP_200_OK)
-        
+
         return api_response(True, f"Error: {serializer.errors}",None, status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
@@ -233,7 +233,7 @@ class LoginView(TokenObtainPairView):
     @swagger_auto_schema(
         operation_summary="Login a user and return JWT tokens",
         request_body=LoginSerializer,
-        tags=['Auth'], 
+        tags=['Auth'],
         responses={
             200: openapi.Response(
                 description="JWT access and refresh tokens",
@@ -251,7 +251,7 @@ class LoginView(TokenObtainPairView):
                                 "other_name": "Jane",
                                 "phone": "+254700000000",
                                 "roles": ["tenant"]
-                            }   
+                            }
                         }
                     }
                 }
@@ -292,7 +292,7 @@ class LoginView(TokenObtainPairView):
                     }
                 }
             ),
-            
+
         }
     )
     def post(self, request,*args, **kwargs):
@@ -302,22 +302,22 @@ class LoginView(TokenObtainPairView):
         user = serializer.validated_data['user']
 
         if not user.email_verified_at:
-            return api_response(False, 
-                "Email not verified. Please verify your email first.", 
+            return api_response(False,
+                "Email not verified. Please verify your email first.",
                 {
                 "code": "email_not_verified",
                 "email": user.email,
                 "resend_endpoint": "/resend-verification/"
-                }, 
+                },
                 status.HTTP_403_FORBIDDEN)
-        
+
         # Respect admin suspensions
         if not user.is_active:
-            return api_response(False, 
-                    "Your account is disabled. Please contact support.", 
+            return api_response(False,
+                    "Your account is disabled. Please contact support.",
                     {
                     "code": "account_disabled"
-                }, 
+                },
                 status.HTTP_403_FORBIDDEN)
 
         refresh = RefreshToken.for_user(user)
@@ -332,7 +332,7 @@ class LoginView(TokenObtainPairView):
             }, status.HTTP_200_OK)
 
 class LogoutView(APIView):
-     
+
     @swagger_auto_schema(
         operation_summary="Logout user by blacklisting refresh token",
         request_body=openapi.Schema(
@@ -342,7 +342,7 @@ class LogoutView(APIView):
                 'refresh': openapi.Schema(type=openapi.TYPE_STRING, description="Refresh token to blacklist")
             }
         ),
-        tags=['Auth'], 
+        tags=['Auth'],
         responses={
             205: openapi.Response(description="Logout successful"),
             400: openapi.Response(description="Token error or missing refresh token")
@@ -365,7 +365,7 @@ class LogoutView(APIView):
             return api_response(False, f"Error: {str(e)}", None, status.HTTP_400_BAD_REQUEST)
 
 class UserMeView(APIView):
-    
+
     permission_classes = [IsAuthenticatedAndActive]
     serializer_class = UserDetailSerializer
 
@@ -434,7 +434,7 @@ class ChangePasswordView(APIView):
                 }
             ),
         },
-        tags=['Auth'], 
+        tags=['Auth'],
     )
     def put(self, request):
 
@@ -444,12 +444,9 @@ class ChangePasswordView(APIView):
         if serializer.is_valid():
             if not user.check_password(serializer.validated_data['old_password']):
                 return api_response(False, "Old password is incorrect", None, status.HTTP_400_BAD_REQUEST)
-            
+
             user.set_password(serializer.validated_data['new_password'])
             user.save()
             return api_response(True, "Password changed successfully", None, status.HTTP_200_OK)
 
         return api_response(False, f"Error: {serializer.errors}", None, status.HTTP_400_BAD_REQUEST)
-
-
-

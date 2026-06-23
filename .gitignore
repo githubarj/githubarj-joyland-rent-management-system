@@ -2,3 +2,8 @@
 .env
 .env.prod
 docker-compose.override.yml
+*.log
+
+
+.claudeignore
+CLAUDE.md

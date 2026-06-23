@@ -15,7 +15,7 @@ interface headerProps {
 const AppHeader: React.FC<headerProps> = ({ open, toggle }) => {
   return (
     <AppShell.Header px={'sm'} className={layout.header}>
-      <Flex mih='100%' justify='space-between' align='center'>
+      <Flex mih="100%" justify="space-between" align="center">
         <TbLayoutSidebarLeftExpandFilled
           data-open={!open}
           className={layout.icon}

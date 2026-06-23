@@ -28,17 +28,17 @@ def custom_exception_handler(exc, context):
     }
     if isinstance(exc, (IntegrityError, DatabaseError)):
 
-        
+
         msg = str(exc).replace("\n", " ").lower()
 
-        # # Try to find a matching constraint 
+        # # Try to find a matching constraint
         for constraint, message in CONSTRAINT_MESSAGES.items():
             if constraint in msg:
                 return api_response(False, message, None, drf_status.HTTP_400_BAD_REQUEST,
                 )
         return api_response(
            False, "Database integrity error.", None,drf_status.HTTP_400_BAD_REQUEST)
-         
+
 
     # Let DRF build the base response first
     response = exception_handler(exc, context)
@@ -53,7 +53,7 @@ def custom_exception_handler(exc, context):
         return api_response(
             False, message, None, drf_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-    
+
     # Decide a friendly message by exception type
     if isinstance(exc, ValidationError):
         message = "Validation error"

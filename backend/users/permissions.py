@@ -15,7 +15,7 @@ class IsAuthenticatedAndActive(BasePermission):
 
         if not user or not user.is_authenticated:
             return False
-        
+
         if not user.is_active:
             raise PermissionDenied(detail="Your account is inactive. Please contact support.")
 
@@ -38,19 +38,19 @@ class RBACPermission(BasePermission):
         #Admin can do everything
         if user.is_superuser or user.is_admin:
             return True
-        
+
         # Example: Only admins can CRUD Permission/RolePermission/UserPermission models
          # Restrict Permission-related models
         if view.queryset.model in [User, AppPermission, RolePermission, UserPermission]:
             return False  # 👈 non-admins cannot access
-        
+
         # Dynamic permission check
         required_permission = getattr(view, "required_permission", None)
         if required_permission:
             return self._check_dynamic_permission(user, required_permission)
-        
+
         return True
-    
+
     def has_object_permission(self, request, view, obj):
         """Object-level checks for profiles and assignments"""
         user = request.user
@@ -58,10 +58,10 @@ class RBACPermission(BasePermission):
         #Admin can do everything
         if user.is_superuser or user.is_admin:
             return True
-        
+
         # ---------------- TENANT PROFILE ----------------
         if isinstance(obj, TenantProfile):
-           
+
             if view.action in ["retrieve", "update", "partial_update"]:
                 if user.is_tenant and obj.user == user:
                     return True  # fallback hard check
@@ -74,7 +74,7 @@ class RBACPermission(BasePermission):
                 if user.landlord_profile:
                     return True  # landlord can delete tenants
                 return False
-            
+
             if view.action == "restore_profile":
                 if user.landlord_profile:
                     return True  # landlord restores tenants
@@ -87,11 +87,11 @@ class RBACPermission(BasePermission):
             if user.is_manager and user.landlord_profile:
                 return True
             return False
-        
+
         # ---------------- LANDLORD PROFILE ----------------
         if isinstance(obj, LandlordProfile):
             return user == obj.manager.user
-        
+
         # ---------------- PROPERTY MANAGER ASSIGNMENTS ----------------
         if isinstance(obj, PropertyManager):
             if user == obj.user:
@@ -135,7 +135,7 @@ class RBACPermission(BasePermission):
         #         UserPermission.objects.filter(user=user,property_id=property_id)
         #         .values_list("permission__code",flat=True)
         #     )
-        
+
         effective = role_perms | user_global
         # effective = role_perms | user_global | user_property
         return permission_code in effective

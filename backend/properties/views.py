@@ -1,0 +1,738 @@
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from django.utils.translation import gettext_lazy as _
+
+from .models import Property, Unit, Lease
+from .serializers import PropertySerializer, UnitSerializer, LeaseSerializer
+from users.permissions import IsAuthenticatedAndActive
+from users.utils import api_response
+
+from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
+from users.models import PropertyManager
+from .access import user_has_permission, user_can_access_property_id
+
+from django.db import transaction
+from django.utils.translation import gettext_lazy as _
+from drf_yasg import openapi
+from rest_framework.exceptions import PermissionDenied, ValidationError
+
+from .swagger import (
+    COMMON_ERROR_RESPONSES,
+    PROPERTY_QUERY_PARAMS,
+    UNIT_QUERY_PARAMS,
+    LEASE_QUERY_PARAMS,
+    PROPERTY_EXAMPLE,
+    UNIT_EXAMPLE,
+    LEASE_EXAMPLE,
+    success_response,
+)
+
+
+PROPERTY_PERMISSION_MAP = {
+    "list": "can_view_properties",
+    "retrieve": "can_view_properties",
+    "create": "can_manage_properties",
+    "update": "can_manage_properties",
+    "partial_update": "can_manage_properties",
+    "destroy": "can_manage_properties",
+}
+
+UNIT_PERMISSION_MAP = {
+    "list": "can_view_units",
+    "retrieve": "can_view_units",
+    "create": "can_manage_units",
+    "update": "can_manage_units",
+    "partial_update": "can_manage_units",
+    "destroy": "can_manage_units",
+}
+
+LEASE_PERMISSION_MAP = {
+    "list": "can_view_leases",
+    "retrieve": "can_view_leases",
+    "create": "can_manage_leases",
+    "update": "can_manage_leases",
+    "partial_update": "can_manage_leases",
+    "destroy": "can_manage_leases",
+}
+
+
+class DynamicPermissionMixin:
+    permission_map = {}
+
+    def get_required_permission(self):
+        return self.permission_map.get(getattr(self, "action", None))
+
+    def check_dynamic_permission(self, property_id=None):
+        required_permission = self.get_required_permission()
+
+        if not required_permission:
+            return
+
+        if not user_has_permission(
+            self.request.user,
+            required_permission,
+            property_id=property_id,
+        ):
+            raise PermissionDenied(
+                f"You do not have permission to perform this action: {required_permission}"
+            )
+
+class PropertyViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
+    serializer_class = PropertySerializer
+    permission_classes = [IsAuthenticatedAndActive]
+    permission_map = PROPERTY_PERMISSION_MAP
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Base optimization: Cache the landlord join early to avoid N+1 issues
+        base_queryset = Property.objects.filter(deleted_at__isnull=True).select_related("landlord")
+
+        # Multi-Tenant Workspace Role Isolation Strategy
+        if user.is_superuser or getattr(user, "is_admin", False):
+            scoped_queryset = base_queryset
+        elif getattr(user, "is_manager", False):
+            scoped_queryset = base_queryset.filter(
+                Q(landlord=user) |
+                Q(
+                    managers__user=user,
+                    managers__is_active=True,
+                    managers__deleted_at__isnull=True,
+                )
+            ).distinct()
+        else:
+            # Tenants do not access the complete index by default
+            scoped_queryset = Property.objects.none()
+
+        # Sanitize query parameters
+        params = self.request.query_params
+        city = params.get("city")
+        is_active = params.get("is_active")
+        landlord = params.get("landlord")
+        search = params.get("search")
+
+        if city:
+            scoped_queryset = scoped_queryset.filter(city__icontains=city)
+
+        if is_active is not None:
+            # FIX: Evaluates against a list to avoid false-negative filters when None
+            scoped_queryset = scoped_queryset.filter(is_active=is_active.lower() in ["true", "1"])
+
+        if landlord:
+            # VALIDATION: Guardrail against ValueError database crashes
+            if not landlord.isdigit():
+                raise ValidationError({"landlord": _("Invalid landlord ID format.")})
+            scoped_queryset = scoped_queryset.filter(landlord_id=landlord)
+
+        if search:
+            scoped_queryset = scoped_queryset.filter(name__icontains=search)
+
+        return scoped_queryset.order_by("-created_at")
+
+    @swagger_auto_schema(
+        operation_summary="List properties",
+        operation_description=(
+            "Returns properties visible to the authenticated user. "
+            "Admins can view all properties. Landlords can view their own properties. "
+            "Assigned property managers can view assigned properties."
+        ),
+        manual_parameters=PROPERTY_QUERY_PARAMS,
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Properties fetched successfully",
+                example_data=[PROPERTY_EXAMPLE],
+                message="Properties fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        self.check_dynamic_permission()
+        response = super().list(request, *args, **kwargs)
+        # FIX: Added required positional arguments to bypass wrapper parameter issues
+        return api_response(True, "Properties fetched successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Create property",
+        operation_description=(
+            "Creates a new property. Non-admin landlords can only create properties "
+            "under their own landlord account."
+        ),
+        request_body=PropertySerializer,
+        tags=["Properties"],
+        responses={
+            201: success_response(
+                "Property created successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property created successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        self.check_dynamic_permission()
+        user = request.user
+
+        # 1. Isolate Non-Admins / Non-Superusers
+        if not (user.is_superuser or getattr(user, "is_admin", False)):
+            landlord_id = request.data.get("landlord")
+
+            if landlord_id:
+                # FIX: Your excellent sanitation check
+                if not str(landlord_id).isdigit():
+                    raise ValidationError({"landlord": _("Invalid landlord ID format.")})
+
+                if int(landlord_id) != user.id:
+                    raise PermissionDenied(
+                        _("You can only create properties under your own landlord account.")
+                    )
+
+            # 2. AUTOMATION INJECTION: If the frontend omitted their own ID,
+            # we inject it into request.data so the serializer doesn't complain it's missing.
+            else:
+                request.data._mutable = True  # Allows modifying QueryDict if incoming data is form-data
+                request.data["landlord"] = user.id
+
+        # 3. Handle Admin Fallbacks
+        else:
+            if not request.data.get("landlord"):
+                raise ValidationError({"landlord": _("Admins must explicitly assign a landlord ID.")})
+
+        response = super().create(request, *args, **kwargs)
+        return api_response(
+            True,
+            "Property created successfully",
+            response.data,
+            status.HTTP_201_CREATED,
+        )
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        # Safe fallback implementation matching your architecture approach
+        if user.is_superuser or getattr(user, "is_admin", False):
+            serializer.save()
+        else:
+            serializer.save(landlord=user)
+
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve property",
+        operation_description="Returns a single property if the authenticated user has access.",
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Property fetched successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+        response = super().retrieve(request, *args, **kwargs)
+        return api_response(True, "Property fetched successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Update property",
+        operation_description="Fully updates a property the authenticated user can manage.",
+        request_body=PropertySerializer,
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Property updated successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "Property updated successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Partially update property",
+        operation_description="Partially updates a property the authenticated user can manage.",
+        request_body=PropertySerializer,
+        tags=["Properties"],
+        responses={
+            200: success_response(
+                "Property updated successfully",
+                example_data=PROPERTY_EXAMPLE,
+                message="Property updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+        response = super().partial_update(request, *args, **kwargs)
+        return api_response(True, "Property updated successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="List units",
+        operation_description=(
+            "Returns units visible to the authenticated user. "
+            "Landlords can view units under their properties. "
+            "Assigned property managers can view units under assigned properties."
+        ),
+        manual_parameters=UNIT_QUERY_PARAMS,
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Units fetched successfully",
+                example_data=[UNIT_EXAMPLE],
+                message="Units fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.id)
+        obj.soft_delete()
+        return api_response(True, "Property deleted successfully", None, status.HTTP_200_OK)
+
+
+
+class UnitViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
+    serializer_class = UnitSerializer
+    permission_classes = [IsAuthenticatedAndActive]
+    permission_map = UNIT_PERMISSION_MAP
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Base optimization: Joint prefetching strategy
+        base_queryset = Unit.objects.filter(deleted_at__isnull=True).select_related(
+            "property", "property__landlord"
+        )
+
+        if user.is_superuser or getattr(user, "is_admin", False):
+            scoped_queryset = base_queryset
+        elif getattr(user, "is_manager", False):
+            scoped_queryset = base_queryset.filter(
+                Q(property__landlord=user) |
+                Q(
+                    property__managers__user=user,
+                    property__managers__is_active=True,
+                    property__managers__deleted_at__isnull=True,
+                )
+            ).distinct()
+        else:
+            scoped_queryset = Unit.objects.none()
+
+        params = self.request.query_params
+        property_id = params.get("property")
+        status_param = params.get("status")
+        unit_type = params.get("unit_type")
+        is_active = params.get("is_active")
+        search = params.get("search")
+
+        if property_id:
+            if not property_id.isdigit():
+                raise ValidationError({"property": _("Invalid property ID format.")})
+            scoped_queryset = scoped_queryset.filter(property_id=property_id)
+
+        if status_param:
+            scoped_queryset = scoped_queryset.filter(status=status_param)
+
+        if unit_type:
+            scoped_queryset = scoped_queryset.filter(unit_type=unit_type)
+
+        if is_active is not None:
+            scoped_queryset = scoped_queryset.filter(is_active=is_active.lower() in ["true", "1"])
+
+        if search:
+            scoped_queryset = scoped_queryset.filter(unit_number__icontains=search)
+
+        return scoped_queryset.order_by("property_id", "unit_number")
+
+    @swagger_auto_schema(operation_summary="List units", tags=["Units"])
+    def list(self, request, *args, **kwargs):
+        self.check_dynamic_permission()
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Units fetched successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Create unit",
+        operation_description=(
+            "Creates a unit under a property. User must have access to the property "
+            "and the can_manage_units permission."
+        ),
+        request_body=UnitSerializer,
+        tags=["Units"],
+        responses={
+            201: success_response(
+                "Unit created successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit created successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        property_id = request.data.get("property")
+
+        if not property_id:
+            raise ValidationError({"property": _("Property is required to create a unit.")})
+
+        # Ensure value is converted properly for downstream utility integer evaluations
+        if str(property_id).isdigit():
+            property_id = int(property_id)
+
+        # 1. Framework Permission Map Check
+        self.check_dynamic_permission(property_id=property_id)
+
+        # 2. Contextual Access Helper Integration
+        if not user_can_access_property_id(request.user, property_id):
+            raise PermissionDenied(_("You do not have access to this property."))
+
+        response = super().create(request, *args, **kwargs)
+        return api_response(True, "Unit created successfully", response.data, status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve unit",
+        operation_description="Returns a single unit if the authenticated user has property access.",
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit fetched successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.property_id)
+        response = super().retrieve(request, *args, **kwargs)
+        return api_response(True, "Unit fetched successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Update unit",
+        operation_description="Fully updates a unit under a property the user can manage.",
+        request_body=UnitSerializer,
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit updated successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.property_id)
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "Unit updated successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Partially update unit",
+        operation_description="Partially updates a unit under a property the user can manage.",
+        request_body=UnitSerializer,
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit updated successfully",
+                example_data=UNIT_EXAMPLE,
+                message="Unit updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.property_id)
+        response = super().partial_update(request, *args, **kwargs)
+        return api_response(True, "Unit updated successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Soft delete unit",
+        operation_description="Soft deletes a unit by setting deleted_at and disabling it.",
+        tags=["Units"],
+        responses={
+            200: success_response(
+                "Unit deleted successfully",
+                example_data=None,
+                message="Unit deleted successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.property_id)
+        obj.soft_delete()
+        return api_response(True, "Unit deleted successfully", None, status.HTTP_200_OK)
+
+
+class LeaseViewSet(DynamicPermissionMixin, viewsets.ModelViewSet):
+    serializer_class = LeaseSerializer
+    permission_classes = [IsAuthenticatedAndActive]
+    permission_map = LEASE_PERMISSION_MAP
+
+    def get_queryset(self):
+        user = self.request.user
+        base_queryset = Lease.objects.filter(deleted_at__isnull=True)
+
+        # 1. Multi-Tenant Role Isolation Strategy
+        if user.is_superuser or getattr(user, "is_admin", False):
+            scoped_queryset = base_queryset
+        elif getattr(user, "is_tenant", False):
+            scoped_queryset = base_queryset.filter(tenant=user)
+        elif getattr(user, "is_manager", False):
+            scoped_queryset = base_queryset.filter(
+                Q(unit__property__landlord=user) |
+                Q(
+                    unit__property__managers__user=user,
+                    unit__property__managers__is_active=True,
+                    unit__property__managers__deleted_at__isnull=True,
+                )
+            ).distinct()
+        else:
+            scoped_queryset = Lease.objects.none()
+
+        # 2. Extract and Sanitize Parameters Safely (Prevents ValueError Crashes)
+        params = self.request.query_params
+        tenant = params.get("tenant")
+        unit = params.get("unit")
+        property_id = params.get("property")
+        status_param = params.get("status")
+
+        if tenant:
+            if not tenant.isdigit():
+                raise ValidationError({"tenant": _("Invalid tenant ID format.")})
+            scoped_queryset = scoped_queryset.filter(tenant_id=tenant)
+
+        if unit:
+            if not unit.isdigit():
+                raise ValidationError({"unit": _("Invalid unit ID format.")})
+            scoped_queryset = scoped_queryset.filter(unit_id=unit)
+
+        if property_id:
+            if not property_id.isdigit():
+                raise ValidationError({"property": _("Invalid property ID format.")})
+            scoped_queryset = scoped_queryset.filter(unit__property_id=property_id)
+
+        if status_param:
+            scoped_queryset = scoped_queryset.filter(status=status_param)
+
+        # 3. Optimized Database Joins Fetching Last
+        return scoped_queryset.select_related(
+            "tenant", "unit", "unit__property", "unit__property__landlord", "created_by"
+        ).order_by("-created_at")
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        lease = serializer.save(created_by=self.request.user)
+
+        # LOCKING: Safe row locking to prevent status synchronization gaps
+        if lease.status == Lease.LeaseStatus.ACTIVE:
+            unit = Unit.objects.select_for_update().get(pk=lease.unit_id)
+            unit.status = Unit.UnitStatus.OCCUPIED
+            unit.save(update_fields=["status", "updated_at"])
+
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        # Fetch unmodified information out of DB before transaction tracking updates it
+        old_instance = self.get_object()
+        old_unit_id = old_instance.unit_id
+        old_status = old_instance.status
+
+        lease = serializer.save()
+
+        if lease.status == Lease.LeaseStatus.ACTIVE:
+            new_unit = Unit.objects.select_for_update().get(pk=lease.unit_id)
+            new_unit.status = Unit.UnitStatus.OCCUPIED
+            new_unit.save(update_fields=["status", "updated_at"])
+
+            # FIX: Cleans up the old unit status if the manager reassigns rooms mid-flight
+            if old_unit_id != lease.unit_id:
+                old_unit = Unit.objects.select_for_update().get(pk=old_unit_id)
+                old_unit.status = Unit.UnitStatus.VACANT
+                old_unit.save(update_fields=["status", "updated_at"])
+
+        elif old_status == Lease.LeaseStatus.ACTIVE:
+            old_unit = Unit.objects.select_for_update().get(pk=old_unit_id)
+            old_unit.status = Unit.UnitStatus.VACANT
+            old_unit.save(update_fields=["status", "updated_at"])
+
+    @swagger_auto_schema(
+        operation_summary="List leases",
+        operation_description=(
+            "Returns leases visible to the authenticated user. "
+            "Tenants see their own leases. Landlords and assigned managers see leases "
+            "for properties they own or manage."
+        ),
+        manual_parameters=LEASE_QUERY_PARAMS,
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Leases fetched successfully",
+                example_data=[LEASE_EXAMPLE],
+                message="Leases fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        self.check_dynamic_permission()
+        response = super().list(request, *args, **kwargs)
+        return api_response(True, "Leases fetched successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve lease",
+        operation_description=(
+            "Returns a single lease. Tenants may retrieve their own leases. "
+            "Managers must have access to the lease's property."
+        ),
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease fetched successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease fetched successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        # KEPT: Your clean tenant-bypass implementation check
+        if request.user.is_tenant and obj.tenant_id == request.user.id:
+            response = super().retrieve(request, *args, **kwargs)
+            return api_response(True, "Lease fetched successfully", response.data, status.HTTP_200_OK)
+
+        self.check_dynamic_permission(property_id=obj.unit.property_id)
+        response = super().retrieve(request, *args, **kwargs)
+        return api_response(True, "Lease fetched successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Create lease",
+        operation_description=(
+            "Creates a lease for a tenant and unit. The user must have access to the unit's property "
+            "and the can_manage_leases permission. If the lease status is ACTIVE, the unit is marked OCCUPIED."
+        ),
+        request_body=LeaseSerializer,
+        tags=["Leases"],
+        responses={
+            201: success_response(
+                "Lease created successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease created successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        unit_id = request.data.get("unit")
+
+        if not unit_id:
+            raise ValidationError({"unit": _("Unit is required to create a lease.")})
+
+        try:
+            unit = Unit.objects.select_related("property").get(id=unit_id, deleted_at__isnull=True)
+        except Unit.DoesNotExist:
+            raise ValidationError({"unit": _("Invalid or non-existent unit selection.")})
+
+        self.check_dynamic_permission(property_id=unit.property_id)
+
+        if not user_can_access_property_id(request.user, unit.property_id):
+            raise PermissionDenied(_("You do not have access to this unit's property."))
+
+        response = super().create(request, *args, **kwargs)
+        return api_response(True, "Lease created successfully", response.data, status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        operation_summary="Update lease",
+        operation_description=(
+            "Fully updates a lease. If the lease becomes ACTIVE, the unit is marked OCCUPIED. "
+            "If an ACTIVE lease changes away from ACTIVE, the old unit is marked VACANT."
+        ),
+        request_body=LeaseSerializer,
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease updated successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.unit.property_id)
+        response = super().update(request, *args, **kwargs)
+        return api_response(True, "Lease updated successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Partially update lease",
+        operation_description=(
+            "Partially updates a lease. Unit status is synchronized when lease status changes."
+        ),
+        request_body=LeaseSerializer,
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease updated successfully",
+                example_data=LEASE_EXAMPLE,
+                message="Lease updated successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.unit.property_id)
+        response = super().partial_update(request, *args, **kwargs)
+        return api_response(True, "Lease updated successfully", response.data, status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="Soft delete lease",
+        operation_description=(
+            "Soft deletes a lease. If the lease was ACTIVE, the linked unit is marked VACANT."
+        ),
+        tags=["Leases"],
+        responses={
+            200: success_response(
+                "Lease deleted successfully",
+                example_data=None,
+                message="Lease deleted successfully",
+            ),
+            **COMMON_ERROR_RESPONSES,
+        },
+    )
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        self.check_dynamic_permission(property_id=obj.unit.property_id)
+
+        unit_id = obj.unit_id
+        lease_status = obj.status
+
+        obj.soft_delete()
+
+        # LOCKING: Safe atomic cascade on soft deletions
+        if lease_status == Lease.LeaseStatus.ACTIVE:
+            unit = Unit.objects.select_for_update().get(pk=unit_id)
+            unit.status = Unit.UnitStatus.VACANT
+            unit.save(update_fields=["status", "updated_at"])
+
+        return api_response(True, "Lease deleted successfully", None, status.HTTP_200_OK)
